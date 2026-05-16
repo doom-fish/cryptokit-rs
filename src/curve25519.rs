@@ -2,6 +2,7 @@
 
 use crate::error::Result;
 use crate::ffi;
+use crate::key_agreement::DiffieHellmanKeyAgreement;
 use crate::public_key::{
     KeyAgreementAlgorithm, KeyAgreementPrivateKey, KeyAgreementPublicKey, SharedSecret,
     SigningAlgorithm, SigningPrivateKey, SigningPublicKey,
@@ -173,6 +174,18 @@ impl X25519PrivateKey {
 /// An X25519 key-agreement public key.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct X25519PublicKey(KeyAgreementPublicKey);
+
+impl DiffieHellmanKeyAgreement for X25519PrivateKey {
+    type PublicKey = X25519PublicKey;
+
+    fn public_key(&self) -> Result<Self::PublicKey> {
+        Self::public_key(self)
+    }
+
+    fn shared_secret(&self, public_key: &Self::PublicKey) -> Result<SharedSecret> {
+        Self::shared_secret(self, public_key)
+    }
+}
 
 impl X25519PublicKey {
     /// Validate and wrap a raw public-key representation.

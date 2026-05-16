@@ -4,6 +4,20 @@ use std::ptr;
 use crate::error::{from_swift, take_owned_buffer, CryptoKitError, Result};
 use crate::ffi;
 
+pub fn bridge_status<F>(call: F) -> Result<()>
+where
+    F: FnOnce(*mut *mut c_char) -> i32,
+{
+    let mut error = ptr::null_mut();
+
+    let status = call(&mut error);
+    if status != ffi::status::OK {
+        return Err(from_swift(status, error));
+    }
+
+    Ok(())
+}
+
 pub fn bridge_bytes<F>(call: F) -> Result<Vec<u8>>
 where
     F: FnOnce(*mut *mut u8, *mut usize, *mut *mut c_char) -> i32,
@@ -18,6 +32,33 @@ where
     }
 
     Ok(take_owned_buffer(out, out_len))
+}
+
+pub fn bridge_two_buffers<F>(call: F) -> Result<(Vec<u8>, Vec<u8>)>
+where
+    F: FnOnce(*mut *mut u8, *mut usize, *mut *mut u8, *mut usize, *mut *mut c_char) -> i32,
+{
+    let mut first = ptr::null_mut();
+    let mut first_len = 0_usize;
+    let mut second = ptr::null_mut();
+    let mut second_len = 0_usize;
+    let mut error = ptr::null_mut();
+
+    let status = call(
+        &mut first,
+        &mut first_len,
+        &mut second,
+        &mut second_len,
+        &mut error,
+    );
+    if status != ffi::status::OK {
+        return Err(from_swift(status, error));
+    }
+
+    Ok((
+        take_owned_buffer(first, first_len),
+        take_owned_buffer(second, second_len),
+    ))
 }
 
 pub fn bridge_flag<F>(call: F) -> Result<bool>

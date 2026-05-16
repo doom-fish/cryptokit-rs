@@ -31,6 +31,12 @@ pub mod hash_algorithm {
     pub const SHA1: i32 = 5;
 }
 
+pub mod sha3_algorithm {
+    pub const SHA3_256: i32 = 1;
+    pub const SHA3_384: i32 = 2;
+    pub const SHA3_512: i32 = 3;
+}
+
 pub mod hmac_algorithm {
     pub const SHA256: i32 = 1;
     pub const SHA384: i32 = 2;
@@ -51,11 +57,73 @@ pub mod key_agreement_algorithm {
     pub const X25519: i32 = 4;
 }
 
+pub mod ecdsa_signature_format {
+    pub const RAW: i32 = 1;
+    pub const DER: i32 = 2;
+}
+
+pub mod kem_algorithm {
+    pub const MLKEM768: i32 = 1;
+    pub const MLKEM1024: i32 = 2;
+    pub const XWING_MLKEM768_X25519: i32 = 3;
+}
+
+pub mod mldsa_algorithm {
+    pub const MLDSA65: i32 = 1;
+    pub const MLDSA87: i32 = 2;
+}
+
+pub mod hpke_kdf {
+    pub const HKDF_SHA256: i32 = 1;
+    pub const HKDF_SHA384: i32 = 2;
+    pub const HKDF_SHA512: i32 = 3;
+}
+
+pub mod hpke_aead {
+    pub const AES_GCM_128: i32 = 1;
+    pub const AES_GCM_256: i32 = 2;
+    pub const CHACHA_POLY: i32 = 3;
+    pub const EXPORT_ONLY: i32 = 4;
+}
+
+pub mod hpke_kem {
+    pub const P256_HKDF_SHA256: i32 = 1;
+    pub const P384_HKDF_SHA384: i32 = 2;
+    pub const P521_HKDF_SHA512: i32 = 3;
+    pub const CURVE25519_HKDF_SHA256: i32 = 4;
+    pub const XWING_MLKEM768_X25519: i32 = 5;
+}
+
+pub mod hpke_mode {
+    pub const BASE: i32 = 1;
+    pub const PSK: i32 = 2;
+    pub const AUTH: i32 = 3;
+    pub const AUTH_PSK: i32 = 4;
+}
+
 extern "C" {
     pub fn ck_symmetric_key_generate(
         size_bits: i32,
         out_key: *mut *mut u8,
         out_key_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_aes_key_wrap(
+        key_to_wrap_bytes: *const u8,
+        key_to_wrap_len: usize,
+        kek_bytes: *const u8,
+        kek_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_aes_key_unwrap(
+        wrapped_key_bytes: *const u8,
+        wrapped_key_len: usize,
+        kek_bytes: *const u8,
+        kek_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
         error_out: *mut *mut c_char,
     ) -> i32;
 
@@ -180,6 +248,24 @@ extern "C" {
         signature_bytes: *const u8,
         signature_len: usize,
         out_valid: *mut u8,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_ecdsa_signature_validate(
+        algorithm: i32,
+        format: i32,
+        signature_bytes: *const u8,
+        signature_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_ecdsa_signature_representation(
+        algorithm: i32,
+        raw_signature_bytes: *const u8,
+        raw_signature_len: usize,
+        format: i32,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
         error_out: *mut *mut c_char,
     ) -> i32;
 
@@ -397,6 +483,31 @@ extern "C" {
         out_len: *mut usize,
         error_out: *mut *mut c_char,
     ) -> i32;
+    pub fn ck_sha3_hash(
+        algorithm: i32,
+        input_bytes: *const u8,
+        input_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_sha3_hasher_create(
+        algorithm: i32,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_sha3_hasher_update(
+        handle: *mut c_void,
+        input_bytes: *const u8,
+        input_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_sha3_hasher_finalize(
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_sha3_hasher_release(handle: *mut c_void);
 
     pub fn ck_hkdf_sha384(
         key_bytes: *const u8,
@@ -430,6 +541,294 @@ extern "C" {
     pub fn ck_key_agreement_supported_algorithm_mask() -> i32;
     pub fn ck_nist_supported_curve_mask() -> i32;
 
+    pub fn ck_kem_public_key_validate(
+        algorithm: i32,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_public_key_encapsulate(
+        algorithm: i32,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        shared_secret_out_bytes: *mut *mut u8,
+        shared_secret_out_len: *mut usize,
+        encapsulated_out_bytes: *mut *mut u8,
+        encapsulated_out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_generate(
+        algorithm: i32,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_from_seed(
+        algorithm: i32,
+        seed_bytes: *const u8,
+        seed_len: usize,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_validate(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_seed_representation(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_public_key(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_kem_private_key_decapsulate(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        encapsulated_bytes: *const u8,
+        encapsulated_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+
+    pub fn ck_mldsa_public_key_validate(
+        algorithm: i32,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_public_key_verify(
+        algorithm: i32,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        signature_bytes: *const u8,
+        signature_len: usize,
+        data_bytes: *const u8,
+        data_len: usize,
+        context_bytes: *const u8,
+        context_len: usize,
+        out_valid: *mut u8,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_generate(
+        algorithm: i32,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_from_seed(
+        algorithm: i32,
+        seed_bytes: *const u8,
+        seed_len: usize,
+        public_key_bytes: *const u8,
+        public_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_validate(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_seed_representation(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_public_key(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_mldsa_private_key_sign(
+        algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        data_bytes: *const u8,
+        data_len: usize,
+        context_bytes: *const u8,
+        context_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+
+    pub fn ck_hpke_dh_public_key_from_serialization(
+        algorithm: i32,
+        kem: i32,
+        serialization_bytes: *const u8,
+        serialization_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_dh_public_key_representation(
+        algorithm: i32,
+        raw_public_key_bytes: *const u8,
+        raw_public_key_len: usize,
+        kem: i32,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_kem_public_key_from_serialization(
+        algorithm: i32,
+        kem: i32,
+        serialization_bytes: *const u8,
+        serialization_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_kem_public_key_representation(
+        algorithm: i32,
+        raw_public_key_bytes: *const u8,
+        raw_public_key_len: usize,
+        kem: i32,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_sender_create_dh(
+        recipient_algorithm: i32,
+        recipient_public_key_bytes: *const u8,
+        recipient_public_key_len: usize,
+        kem: i32,
+        kdf: i32,
+        aead: i32,
+        info_bytes: *const u8,
+        info_len: usize,
+        mode: i32,
+        auth_private_key_bytes: *const u8,
+        auth_private_key_len: usize,
+        psk_bytes: *const u8,
+        psk_len: usize,
+        psk_id_bytes: *const u8,
+        psk_id_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_hpke_sender_create_kem(
+        recipient_algorithm: i32,
+        recipient_public_key_bytes: *const u8,
+        recipient_public_key_len: usize,
+        kem: i32,
+        kdf: i32,
+        aead: i32,
+        info_bytes: *const u8,
+        info_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_hpke_sender_release(handle: *mut c_void);
+    pub fn ck_hpke_sender_encapsulated_key(
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_sender_seal(
+        handle: *mut c_void,
+        message_bytes: *const u8,
+        message_len: usize,
+        aad_bytes: *const u8,
+        aad_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_sender_export_secret(
+        handle: *mut c_void,
+        context_bytes: *const u8,
+        context_len: usize,
+        output_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_recipient_create_dh(
+        private_algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        kem: i32,
+        kdf: i32,
+        aead: i32,
+        info_bytes: *const u8,
+        info_len: usize,
+        encapsulated_key_bytes: *const u8,
+        encapsulated_key_len: usize,
+        mode: i32,
+        auth_public_key_bytes: *const u8,
+        auth_public_key_len: usize,
+        psk_bytes: *const u8,
+        psk_len: usize,
+        psk_id_bytes: *const u8,
+        psk_id_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_hpke_recipient_create_kem(
+        private_algorithm: i32,
+        private_key_bytes: *const u8,
+        private_key_len: usize,
+        kem: i32,
+        kdf: i32,
+        aead: i32,
+        info_bytes: *const u8,
+        info_len: usize,
+        encapsulated_key_bytes: *const u8,
+        encapsulated_key_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_hpke_recipient_release(handle: *mut c_void);
+    pub fn ck_hpke_recipient_open(
+        handle: *mut c_void,
+        ciphertext_bytes: *const u8,
+        ciphertext_len: usize,
+        aad_bytes: *const u8,
+        aad_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_hpke_recipient_export_secret(
+        handle: *mut c_void,
+        context_bytes: *const u8,
+        context_len: usize,
+        output_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+
     pub fn ck_secure_enclave_is_available(
         out_available: *mut u8,
         error_out: *mut *mut c_char,
@@ -437,8 +836,19 @@ extern "C" {
     pub fn ck_secure_enclave_signing_private_key_generate(
         error_out: *mut *mut c_char,
     ) -> *mut c_void;
+    pub fn ck_secure_enclave_signing_private_key_from_data_representation(
+        data_bytes: *const u8,
+        data_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
     pub fn ck_secure_enclave_signing_private_key_release(handle: *mut c_void);
     pub fn ck_secure_enclave_signing_private_key_public_key(
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_signing_private_key_data_representation(
         handle: *mut c_void,
         out_bytes: *mut *mut u8,
         out_len: *mut usize,
@@ -455,8 +865,19 @@ extern "C" {
     pub fn ck_secure_enclave_key_agreement_private_key_generate(
         error_out: *mut *mut c_char,
     ) -> *mut c_void;
+    pub fn ck_secure_enclave_key_agreement_private_key_from_data_representation(
+        data_bytes: *const u8,
+        data_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
     pub fn ck_secure_enclave_key_agreement_private_key_release(handle: *mut c_void);
     pub fn ck_secure_enclave_key_agreement_private_key_public_key(
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_key_agreement_private_key_data_representation(
         handle: *mut c_void,
         out_bytes: *mut *mut u8,
         out_len: *mut usize,
@@ -466,6 +887,78 @@ extern "C" {
         handle: *mut c_void,
         public_key_bytes: *const u8,
         public_key_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+
+    pub fn ck_secure_enclave_mldsa_private_key_generate(
+        algorithm: i32,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_secure_enclave_mldsa_private_key_from_data_representation(
+        algorithm: i32,
+        data_bytes: *const u8,
+        data_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_secure_enclave_mldsa_private_key_release(algorithm: i32, handle: *mut c_void);
+    pub fn ck_secure_enclave_mldsa_private_key_public_key(
+        algorithm: i32,
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_mldsa_private_key_data_representation(
+        algorithm: i32,
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_mldsa_private_key_sign(
+        algorithm: i32,
+        handle: *mut c_void,
+        data_bytes: *const u8,
+        data_len: usize,
+        context_bytes: *const u8,
+        context_len: usize,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+
+    pub fn ck_secure_enclave_kem_private_key_generate(
+        algorithm: i32,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_secure_enclave_kem_private_key_from_data_representation(
+        algorithm: i32,
+        data_bytes: *const u8,
+        data_len: usize,
+        error_out: *mut *mut c_char,
+    ) -> *mut c_void;
+    pub fn ck_secure_enclave_kem_private_key_release(algorithm: i32, handle: *mut c_void);
+    pub fn ck_secure_enclave_kem_private_key_public_key(
+        algorithm: i32,
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_kem_private_key_data_representation(
+        algorithm: i32,
+        handle: *mut c_void,
+        out_bytes: *mut *mut u8,
+        out_len: *mut usize,
+        error_out: *mut *mut c_char,
+    ) -> i32;
+    pub fn ck_secure_enclave_kem_private_key_decapsulate(
+        algorithm: i32,
+        handle: *mut c_void,
+        encapsulated_bytes: *const u8,
+        encapsulated_len: usize,
         out_bytes: *mut *mut u8,
         out_len: *mut usize,
         error_out: *mut *mut c_char,

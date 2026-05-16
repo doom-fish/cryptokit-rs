@@ -5,6 +5,27 @@ use crate::ffi;
 pub use crate::public_key::{
     KeyAgreementAlgorithm, KeyAgreementPrivateKey, KeyAgreementPublicKey, SharedSecret,
 };
+use crate::error::Result;
+
+/// Trait mirroring `CryptoKit.DiffieHellmanKeyAgreement`.
+pub trait DiffieHellmanKeyAgreement {
+    /// Public-key type associated with this private key.
+    type PublicKey;
+
+    /// Export the matching public key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    fn public_key(&self) -> Result<Self::PublicKey>;
+
+    /// Derive a shared secret with a peer public key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    fn shared_secret(&self, public_key: &Self::PublicKey) -> Result<SharedSecret>;
+}
 
 const P256_MASK: i32 = 1;
 const P384_MASK: i32 = 1 << 1;

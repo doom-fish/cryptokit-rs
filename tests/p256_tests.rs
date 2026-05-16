@@ -10,6 +10,12 @@ fn p256_signing_and_key_agreement_round_trip() -> Result<()> {
     let signature = signing.sign(b"p256 message")?;
     assert!(verifying.verify(b"p256 message", &signature)?);
 
+    let typed_signature = signing.sign_signature(b"typed p256 message")?;
+    assert!(verifying.verify_signature(b"typed p256 message", &typed_signature)?);
+    let der_signature = typed_signature.der_representation()?;
+    let typed_roundtrip = p256::P256EcdsaSignature::from_der_representation(der_signature)?;
+    assert!(verifying.verify_signature(b"typed p256 message", &typed_roundtrip)?);
+
     let alice = P256KeyAgreementPrivateKey::generate()?;
     let bob = P256KeyAgreementPrivateKey::generate()?;
     let alice_secret = alice.shared_secret(&bob.public_key()?)?;

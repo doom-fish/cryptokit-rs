@@ -1,6 +1,9 @@
 import CryptoKit
 import Foundation
 
+private let CK_ECDSA_SIGNATURE_RAW: Int32 = 1
+private let CK_ECDSA_SIGNATURE_DER: Int32 = 2
+
 private func ckSigningPrivateKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_SIGNING_P256:
@@ -89,6 +92,85 @@ private func ckVerifySignature(
         return key.isValidSignature(signature, for: message)
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
+    }
+}
+
+private func ckEcdsaRawSignature(
+    _ algorithm: Int32,
+    format: Int32,
+    signature: Data
+) throws -> Data {
+    switch algorithm {
+    case CK_SIGNING_P256:
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return try Data(P256.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return try Data(P256.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    case CK_SIGNING_P384:
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return try Data(P384.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return try Data(P384.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    case CK_SIGNING_P521:
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return try Data(P521.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return try Data(P521.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    default:
+        throw CKBridgeError.invalidArgument("ECDSA signatures are unsupported for algorithm: \(algorithm)")
+    }
+}
+
+private func ckEcdsaSignatureRepresentation(
+    _ algorithm: Int32,
+    format: Int32,
+    rawSignature: Data
+) throws -> Data {
+    switch algorithm {
+    case CK_SIGNING_P256:
+        let signature = try P256.Signing.ECDSASignature(rawRepresentation: rawSignature)
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return Data(signature.rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return signature.derRepresentation
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    case CK_SIGNING_P384:
+        let signature = try P384.Signing.ECDSASignature(rawRepresentation: rawSignature)
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return Data(signature.rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return signature.derRepresentation
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    case CK_SIGNING_P521:
+        let signature = try P521.Signing.ECDSASignature(rawRepresentation: rawSignature)
+        switch format {
+        case CK_ECDSA_SIGNATURE_RAW:
+            return Data(signature.rawRepresentation)
+        case CK_ECDSA_SIGNATURE_DER:
+            return signature.derRepresentation
+        default:
+            throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
+        }
+    default:
+        throw CKBridgeError.invalidArgument("ECDSA signatures are unsupported for algorithm: \(algorithm)")
     }
 }
 
@@ -287,6 +369,46 @@ public func ck_verify(
         let signature = try ckData(signatureBytes, signatureLen)
         outValid.pointee = try ckVerifySignature(algorithm, publicKey: publicKey, message: message, signature: signature) ? 1 : 0
         return CK_OK
+    } catch let error as CKBridgeError {
+        return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
+    } catch {
+        return ckFail(CK_SIGNATURE_FAILED, error, errorOut)
+    }
+}
+
+@_cdecl("ck_ecdsa_signature_validate")
+public func ck_ecdsa_signature_validate(
+    _ algorithm: Int32,
+    _ format: Int32,
+    _ signatureBytes: UnsafePointer<UInt8>?,
+    _ signatureLen: UInt,
+    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
+    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    do {
+        let signature = try ckData(signatureBytes, signatureLen)
+        return ckCopyData(try ckEcdsaRawSignature(algorithm, format: format, signature: signature), outBytes, outLen, errorOut)
+    } catch let error as CKBridgeError {
+        return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
+    } catch {
+        return ckFail(CK_SIGNATURE_FAILED, error, errorOut)
+    }
+}
+
+@_cdecl("ck_ecdsa_signature_representation")
+public func ck_ecdsa_signature_representation(
+    _ algorithm: Int32,
+    _ rawSignatureBytes: UnsafePointer<UInt8>?,
+    _ rawSignatureLen: UInt,
+    _ format: Int32,
+    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
+    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    do {
+        let rawSignature = try ckData(rawSignatureBytes, rawSignatureLen)
+        return ckCopyData(try ckEcdsaSignatureRepresentation(algorithm, format: format, rawSignature: rawSignature), outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {
