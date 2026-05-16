@@ -401,6 +401,11 @@ pub struct SharedSecret {
 }
 
 impl SharedSecret {
+    #[allow(clippy::missing_const_for_fn)]
+    pub(crate) fn from_bytes(bytes: Vec<u8>) -> Self {
+        Self { bytes }
+    }
+
     /// Borrow the raw shared-secret bytes.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {

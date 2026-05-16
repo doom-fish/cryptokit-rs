@@ -12,6 +12,7 @@ fn main() {
 
     println!("cargo:rustc-link-lib=framework=CryptoKit");
     println!("cargo:rustc-link-lib=framework=Foundation");
+    println!("cargo:rustc-link-lib=framework=Security");
 
     let swift_dir = "swift-bridge";
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR must be set");

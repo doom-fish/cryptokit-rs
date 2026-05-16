@@ -1,11 +1,11 @@
 [package]
 name = "cryptokit-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/cryptokit-rs"
 repository = "https://github.com/doom-fish/cryptokit-rs"
-description = "Safe Rust bindings for Apple's CryptoKit framework — hashing, AEAD, HMAC, HKDF, signatures, and ECDH on macOS"
+description = "Safe Rust bindings for Apple's CryptoKit framework — hashing, AEAD, AES-CBC compatibility, signatures, key agreement, and Secure Enclave on macOS"
 authors = ["Per Johansson <per@doom.fish>"]
 keywords = ["cryptokit", "crypto", "macos", "aes-gcm", "apple"]
 categories = ["api-bindings", "os::macos-apis", "cryptography"]
@@ -22,6 +22,7 @@ include = [
     "README.md",
     "LICENSE-*",
     "CHANGELOG.md",
+    "COVERAGE.md",
 ]
 
 [lints.rust]

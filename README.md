@@ -2,7 +2,7 @@
 
 Safe Rust bindings for Apple's [CryptoKit](https://developer.apple.com/documentation/cryptokit) framework on macOS.
 
-> **Status:** v0.1.0 covers the core CryptoKit surface doom-fish crates need first: SHA-family hashing, insecure MD5/SHA-1 compatibility hashes, HMAC, HKDF, AES-GCM, ChaCha20-Poly1305, Ed25519 / NIST signing keys, and ECDH key agreement.
+> **Status:** v0.2.0 adds per-area coverage for `SymmetricKey`, `AES.GCM`, AES-CBC compatibility, `ChaChaPoly`, `P256`, `P384`, `P521`, `Curve25519`, `HKDF`, `HMAC`, `SHA`, `SecureEnclave`, `NIST`, insecure `MD5` / `SHA1`, generic key agreement, and shared-secret key derivation.
 
 ## Quick start
 
@@ -28,22 +28,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Highlights
 
-- `SymmetricKey`, `SymmetricKeySize`, `AesGcm`, and `ChaCha20Poly1305`
-- `sha256` / `sha384` / `sha512` / `md5` / `sha1`
-- `hmac_sha256` / `hmac_sha384` / `hmac_sha512`
-- `hkdf_sha256` plus `SharedSecret::hkdf_sha256`
-- `SigningPrivateKey` / `SigningPublicKey` for P-256 / P-384 / P-521 and Ed25519
-- `KeyAgreementPrivateKey` / `KeyAgreementPublicKey` for P-256 / P-384 / P-521 and X25519
+- Preserves the original root API (`AesGcm`, `ChaCha20Poly1305`, `SigningPrivateKey`, `KeyAgreementPrivateKey`) while adding per-area modules.
+- Adds `aes_gcm` / `chacha_poly` sealed-box helpers with nonce, ciphertext, tag, and authenticated-data support.
+- Adds `aes_cbc::AesCbc` for PKCS#7-padded CBC interoperability.
+- Adds curve-specific modules for `p256`, `p384`, `p521`, and `curve25519` on top of the generic signing/key-agreement API.
+- Adds `key_derivation` helpers for shared-secret HKDF and ANSI X9.63 derivation.
+- Adds `secure_enclave` P-256 signing/key-agreement wrappers that gracefully skip when the hardware or keychain is unavailable.
+- Adds `COVERAGE.md`, 17 numbered examples, and 16 integration-test files.
 
-## Smoke example
+## Area modules
 
-Run the end-to-end smoke test with:
+- `symmetric_key`
+- `aes_gcm`
+- `aes_cbc`
+- `chacha_poly`
+- `p256`, `p384`, `p521`, `curve25519`
+- `hkdf`, `hmac`, `sha`, `insecure`
+- `key_agreement`, `key_derivation`, `nist`, `secure_enclave`
+
+## Running everything
 
 ```bash
-cargo run --all-features --example 01_smoke
+cargo clippy --all-targets -- -D warnings
+cargo test
+for ex in examples/*.rs; do cargo run --example "$(basename "$ex" .rs)"; done
 ```
 
-It checks the SHA-256 digest for `"hello"`, round-trips a 1KiB AES-GCM message with a generated 256-bit key, signs and verifies with Ed25519, and performs P-256 ECDH on both sides.
+## Coverage notes
+
+- AES-CBC is implemented through a Swift/CommonCrypto compatibility bridge because `CryptoKit` itself does not expose CBC mode on macOS.
+- Secure Enclave examples and tests probe availability first and may skip on machines without the required hardware or usable keychain state.
+- `COVERAGE.md` tracks implemented, partial, and intentionally skipped `CryptoKit` surface area.
 
 ## License
 
