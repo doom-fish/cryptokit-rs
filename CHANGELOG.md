@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4] - 2026-06-05
+
+### Changed
+
+- Added explicit SAFETY comments to unsafe pointer operations in error handling (CStr::from_ptr, libc::free calls, slice::from_raw_parts) to improve unsafe audit clarity.
+- Updated README status line to reflect v0.2.3 compile-time availability guards.
+
 ## [0.2.3] - 2026-06-05
 
 ### Changed
