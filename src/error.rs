@@ -86,9 +86,13 @@ fn take_owned_c_string(ptr: *mut c_char) -> String {
         return String::new();
     }
 
+    // SAFETY: The pointer is non-null and is guaranteed to be a valid null-terminated C string
+    // allocated by the Swift bridge. We dereference it only to create a CStr view.
     let string = unsafe { core::ffi::CStr::from_ptr(ptr) }
         .to_string_lossy()
         .into_owned();
+    // SAFETY: The pointer is valid and was allocated by the Swift bridge via malloc/libc
+    // and must be freed with libc::free, which is safe to call on valid allocations.
     unsafe { free(ptr.cast()) };
     string
 }
@@ -97,12 +101,18 @@ fn take_owned_c_string(ptr: *mut c_char) -> String {
 pub(crate) fn take_owned_buffer(ptr: *mut u8, len: usize) -> Vec<u8> {
     if ptr.is_null() || len == 0 {
         if !ptr.is_null() {
+            // SAFETY: The pointer is non-null and was allocated by the Swift bridge.
+            // Calling free on a valid pointer is safe.
             unsafe { free(ptr.cast()) };
         }
         return Vec::new();
     }
 
+    // SAFETY: The pointer and length are guaranteed by the Swift bridge to describe
+    // a valid buffer of `len` bytes allocated via malloc/libc and owned by us now.
     let bytes = unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec();
+    // SAFETY: The pointer is valid and was allocated by the Swift bridge.
+    // After creating the Vec copy, we free the original buffer.
     unsafe { free(ptr.cast()) };
     bytes
 }

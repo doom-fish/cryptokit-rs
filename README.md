@@ -2,7 +2,7 @@
 
 Safe Rust bindings for Apple's [CryptoKit](https://developer.apple.com/documentation/cryptokit) framework on macOS.
 
-> **Status:** v0.2.2 fills the remaining audited CryptoKit feature gaps with typed SHA-2 / insecure digests, streaming hash/HMAC state, HKDF `extract` / `expand`, typed AEAD nonces, alternate NIST key encodings, and Secure Enclave access-control / authentication-context flows on top of the v0.2.1 surface.
+> **Status:** v0.2.3 adds compile-time `@available` guards to post-quantum and HPKE thunks, enabling SDK-portable bridging. The surface builds and bridges 100% of audited CryptoKit APIs across symmetric encryption, signing, key agreement, key derivation, hashing, Secure Enclave, and post-quantum (ML-KEM, ML-DSA) families.
 
 ## Quick start
 
