@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.3] - 2026-06-05
+
+### Changed
+
+- Added compile-time `@available(macOS 26.0, *)` attributes to all 32 `@_cdecl` thunks in `PostQuantum.swift` (ML-KEM, ML-DSA, Secure Enclave MLDSA65/MLDSA87/MLKEM768/MLKEM1024) and `@available(macOS 26.0, *)` / `@available(macOS 14.0, *)` to all 15 `@_cdecl` thunks in `HPKE.swift`.  These companion the existing runtime `guard #available` checks and make the bridge SDK-portable — downstream consumers building with a macOS 15 SDK no longer see unavailability errors for post-quantum symbols.
+
 ## [0.2.2] - 2026-05-17
 
 ### Added

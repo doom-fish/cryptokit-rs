@@ -545,6 +545,7 @@ private func ckHpkeRecipientKemHolder(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_dh_public_key_from_serialization")
 public func ck_hpke_dh_public_key_from_serialization(
     _ algorithm: Int32,
@@ -574,6 +575,7 @@ public func ck_hpke_dh_public_key_from_serialization(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_dh_public_key_representation")
 public func ck_hpke_dh_public_key_representation(
     _ algorithm: Int32,
@@ -603,6 +605,7 @@ public func ck_hpke_dh_public_key_representation(
     }
 }
 
+@available(macOS 26.0, *)
 @_cdecl("ck_hpke_kem_public_key_from_serialization")
 public func ck_hpke_kem_public_key_from_serialization(
     _ algorithm: Int32,
@@ -632,6 +635,7 @@ public func ck_hpke_kem_public_key_from_serialization(
     }
 }
 
+@available(macOS 26.0, *)
 @_cdecl("ck_hpke_kem_public_key_representation")
 public func ck_hpke_kem_public_key_representation(
     _ algorithm: Int32,
@@ -661,6 +665,7 @@ public func ck_hpke_kem_public_key_representation(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_sender_create_dh")
 public func ck_hpke_sender_create_dh(
     _ recipientAlgorithm: Int32,
@@ -711,6 +716,7 @@ public func ck_hpke_sender_create_dh(
     }
 }
 
+@available(macOS 26.0, *)
 @_cdecl("ck_hpke_sender_create_kem")
 public func ck_hpke_sender_create_kem(
     _ recipientAlgorithm: Int32,
@@ -747,6 +753,7 @@ public func ck_hpke_sender_create_kem(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_sender_release")
 public func ck_hpke_sender_release(_ handle: UnsafeMutableRawPointer?) {
     guard #available(macOS 14.0, *), let handle else {
@@ -755,6 +762,7 @@ public func ck_hpke_sender_release(_ handle: UnsafeMutableRawPointer?) {
     Unmanaged<CKHPKESenderHolder>.fromOpaque(handle).release()
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_sender_encapsulated_key")
 public func ck_hpke_sender_encapsulated_key(
     _ handle: UnsafeMutableRawPointer?,
@@ -779,6 +787,7 @@ public func ck_hpke_sender_encapsulated_key(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_sender_seal")
 public func ck_hpke_sender_seal(
     _ handle: UnsafeMutableRawPointer?,
@@ -815,6 +824,7 @@ public func ck_hpke_sender_seal(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_sender_export_secret")
 public func ck_hpke_sender_export_secret(
     _ handle: UnsafeMutableRawPointer?,
@@ -844,6 +854,7 @@ public func ck_hpke_sender_export_secret(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_recipient_create_dh")
 public func ck_hpke_recipient_create_dh(
     _ privateAlgorithm: Int32,
@@ -898,6 +909,7 @@ public func ck_hpke_recipient_create_dh(
     }
 }
 
+@available(macOS 26.0, *)
 @_cdecl("ck_hpke_recipient_create_kem")
 public func ck_hpke_recipient_create_kem(
     _ privateAlgorithm: Int32,
@@ -938,6 +950,7 @@ public func ck_hpke_recipient_create_kem(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_recipient_release")
 public func ck_hpke_recipient_release(_ handle: UnsafeMutableRawPointer?) {
     guard #available(macOS 14.0, *), let handle else {
@@ -946,6 +959,7 @@ public func ck_hpke_recipient_release(_ handle: UnsafeMutableRawPointer?) {
     Unmanaged<CKHPKERecipientHolder>.fromOpaque(handle).release()
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_recipient_open")
 public func ck_hpke_recipient_open(
     _ handle: UnsafeMutableRawPointer?,
@@ -982,6 +996,7 @@ public func ck_hpke_recipient_open(
     }
 }
 
+@available(macOS 14.0, *)
 @_cdecl("ck_hpke_recipient_export_secret")
 public func ck_hpke_recipient_export_secret(
     _ handle: UnsafeMutableRawPointer?,
