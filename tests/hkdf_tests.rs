@@ -41,3 +41,20 @@ fn hkdf_sha384_and_sha512_return_requested_lengths() -> Result<()> {
     assert_eq!(sha512.as_bytes().len(), 64);
     Ok(())
 }
+
+#[test]
+fn hkdf_extract_and_expand_match_derive_key() -> Result<()> {
+    let input_key_material = SymmetricKey::from_bytes(vec![0x0b; 22]);
+    let salt = [
+        0x00_u8, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+    ];
+    let info = [
+        0xf0_u8, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9,
+    ];
+
+    let pseudo_random_key = cryptokit::hkdf::hkdf_extract_sha256(&input_key_material, Some(&salt))?;
+    let expanded = cryptokit::hkdf::hkdf_expand_sha256(&pseudo_random_key, Some(&info), 42)?;
+    let derived = hkdf_sha256(&input_key_material, &salt, &info, 42)?;
+    assert_eq!(expanded.as_bytes(), derived.as_bytes());
+    Ok(())
+}

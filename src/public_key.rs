@@ -1,9 +1,9 @@
 //! Signing and key-agreement keys backed by raw `CryptoKit` representations.
 
-use crate::error::Result;
+use crate::error::{CryptoKitError, Result};
 use crate::ffi;
 use crate::hkdf::hkdf_sha256;
-use crate::private::{bridge_bytes, bridge_flag, ensure_same_algorithm};
+use crate::private::{bridge_bytes, bridge_flag, bridge_optional_bytes, ensure_same_algorithm};
 use crate::symmetric::SymmetricKey;
 
 /// Supported signing algorithms.
@@ -57,16 +57,11 @@ impl SigningPrivateKey {
         raw: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let raw = raw.into();
-        let canonical = bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_signing_private_key_validate(
-                algorithm.as_ffi(),
-                raw.as_ptr(),
-                raw.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })?;
+        let canonical = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Raw,
+            &raw,
+        )?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -155,16 +150,8 @@ impl SigningPublicKey {
         raw: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let raw = raw.into();
-        let canonical = bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_signing_public_key_validate(
-                algorithm.as_ffi(),
-                raw.as_ptr(),
-                raw.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })?;
+        let canonical =
+            signing_public_key_from_representation(algorithm, KeyRepresentationFormat::Raw, &raw)?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -262,16 +249,11 @@ impl KeyAgreementPrivateKey {
         raw: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let raw = raw.into();
-        let canonical = bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_key_agreement_private_key_validate(
-                algorithm.as_ffi(),
-                raw.as_ptr(),
-                raw.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })?;
+        let canonical = key_agreement_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Raw,
+            &raw,
+        )?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -359,16 +341,11 @@ impl KeyAgreementPublicKey {
         raw: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let raw = raw.into();
-        let canonical = bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_key_agreement_public_key_validate(
-                algorithm.as_ffi(),
-                raw.as_ptr(),
-                raw.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })?;
+        let canonical = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Raw,
+            &raw,
+        )?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -391,6 +368,737 @@ impl KeyAgreementPublicKey {
     #[must_use]
     pub fn into_raw_representation(self) -> Vec<u8> {
         self.raw
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum KeyRepresentationFormat {
+    Raw,
+    Compact,
+    X963,
+    Compressed,
+    Der,
+    Pem,
+}
+
+impl KeyRepresentationFormat {
+    const fn as_ffi(self) -> i32 {
+        match self {
+            Self::Raw => ffi::key_representation_format::RAW,
+            Self::Compact => ffi::key_representation_format::COMPACT,
+            Self::X963 => ffi::key_representation_format::X963,
+            Self::Compressed => ffi::key_representation_format::COMPRESSED,
+            Self::Der => ffi::key_representation_format::DER,
+            Self::Pem => ffi::key_representation_format::PEM,
+        }
+    }
+}
+
+fn utf8_key_representation(kind: &str, bytes: Vec<u8>) -> Result<String> {
+    String::from_utf8(bytes).map_err(|error| {
+        CryptoKitError::KeyOperationFailed(format!("{kind} is not valid UTF-8: {error}"))
+    })
+}
+
+fn signing_private_key_from_representation(
+    algorithm: SigningAlgorithm,
+    format: KeyRepresentationFormat,
+    input: &[u8],
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_signing_private_key_from_representation(
+            algorithm.as_ffi(),
+            format.as_ffi(),
+            input.as_ptr(),
+            input.len(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn signing_private_key_representation(
+    algorithm: SigningAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_signing_private_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn signing_public_key_from_representation(
+    algorithm: SigningAlgorithm,
+    format: KeyRepresentationFormat,
+    input: &[u8],
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_signing_public_key_from_representation(
+            algorithm.as_ffi(),
+            format.as_ffi(),
+            input.as_ptr(),
+            input.len(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn signing_public_key_representation(
+    algorithm: SigningAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_signing_public_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn signing_public_key_optional_representation(
+    algorithm: SigningAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Option<Vec<u8>>> {
+    bridge_optional_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_signing_public_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn key_agreement_private_key_from_representation(
+    algorithm: KeyAgreementAlgorithm,
+    format: KeyRepresentationFormat,
+    input: &[u8],
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_key_agreement_private_key_from_representation(
+            algorithm.as_ffi(),
+            format.as_ffi(),
+            input.as_ptr(),
+            input.len(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn key_agreement_private_key_representation(
+    algorithm: KeyAgreementAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_key_agreement_private_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn key_agreement_public_key_from_representation(
+    algorithm: KeyAgreementAlgorithm,
+    format: KeyRepresentationFormat,
+    input: &[u8],
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_key_agreement_public_key_from_representation(
+            algorithm.as_ffi(),
+            format.as_ffi(),
+            input.as_ptr(),
+            input.len(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn key_agreement_public_key_representation(
+    algorithm: KeyAgreementAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Vec<u8>> {
+    bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_key_agreement_public_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+fn key_agreement_public_key_optional_representation(
+    algorithm: KeyAgreementAlgorithm,
+    raw: &[u8],
+    format: KeyRepresentationFormat,
+) -> Result<Option<Vec<u8>>> {
+    bridge_optional_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_key_agreement_public_key_representation(
+            algorithm.as_ffi(),
+            raw.as_ptr(),
+            raw.len(),
+            format.as_ffi(),
+            out,
+            out_len,
+            error_out,
+        )
+    })
+}
+
+impl SigningPrivateKey {
+    /// Generate a new private signing key with explicit compact-representation support.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this option or if the
+    /// `CryptoKit` bridge rejects the request.
+    pub fn generate_with_compact_representable(
+        algorithm: SigningAlgorithm,
+        compact_representable: bool,
+    ) -> Result<Self> {
+        let raw = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_signing_private_key_generate_with_options(
+                algorithm.as_ffi(),
+                u8::from(compact_representable),
+                out,
+                out_len,
+                error_out,
+            )
+        })?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Validate and wrap an ANSI X9.63 private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_x963_representation(
+        algorithm: SigningAlgorithm,
+        x963: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let x963 = x963.into();
+        let raw = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::X963,
+            &x963,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this representation.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::X963)
+    }
+
+    /// Validate and wrap a DER private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm or if the
+    /// running OS does not support DER key representations.
+    pub fn from_der_representation(
+        algorithm: SigningAlgorithm,
+        der: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let der = der.into();
+        let raw = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Der,
+            &der,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support DER key representations.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+    }
+
+    /// Validate and wrap a PEM private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for the selected algorithm or if the running OS
+    /// does not support PEM key representations.
+    pub fn from_pem_representation(
+        algorithm: SigningAlgorithm,
+        pem: impl AsRef<str>,
+    ) -> Result<Self> {
+        let raw = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Pem,
+            pem.as_ref().as_bytes(),
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support PEM key representations.
+    pub fn pem_representation(&self) -> Result<String> {
+        utf8_key_representation(
+            "signing private-key PEM representation",
+            signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+        )
+    }
+}
+
+impl SigningPublicKey {
+    /// Validate and wrap a compact public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_compact_representation(
+        algorithm: SigningAlgorithm,
+        compact: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let compact = compact.into();
+        let raw = signing_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Compact,
+            &compact,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in compact form when one exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support compact representations.
+    pub fn compact_representation(&self) -> Result<Option<Vec<u8>>> {
+        signing_public_key_optional_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Compact,
+        )
+    }
+
+    /// Validate and wrap an ANSI X9.63 public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_x963_representation(
+        algorithm: SigningAlgorithm,
+        x963: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let x963 = x963.into();
+        let raw = signing_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::X963,
+            &x963,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this representation.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        signing_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::X963)
+    }
+
+    /// Validate and wrap a compressed public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid or if the running OS does not support compressed
+    /// key representations.
+    pub fn from_compressed_representation(
+        algorithm: SigningAlgorithm,
+        compressed: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let compressed = compressed.into();
+        let raw = signing_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Compressed,
+            &compressed,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in compressed form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support compressed key representations.
+    pub fn compressed_representation(&self) -> Result<Vec<u8>> {
+        signing_public_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Compressed,
+        )
+    }
+
+    /// Validate and wrap a DER public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid or if the running OS does not support DER key
+    /// representations.
+    pub fn from_der_representation(
+        algorithm: SigningAlgorithm,
+        der: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let der = der.into();
+        let raw = signing_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Der,
+            &der,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support DER key representations.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        signing_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+    }
+
+    /// Validate and wrap a PEM public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for the selected algorithm or if the running OS
+    /// does not support PEM key representations.
+    pub fn from_pem_representation(
+        algorithm: SigningAlgorithm,
+        pem: impl AsRef<str>,
+    ) -> Result<Self> {
+        let raw = signing_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Pem,
+            pem.as_ref().as_bytes(),
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support PEM key representations.
+    pub fn pem_representation(&self) -> Result<String> {
+        utf8_key_representation(
+            "signing public-key PEM representation",
+            signing_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+        )
+    }
+}
+
+impl KeyAgreementPrivateKey {
+    /// Generate a new private key-agreement key with explicit compact-representation support.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this option or if the
+    /// `CryptoKit` bridge rejects the request.
+    pub fn generate_with_compact_representable(
+        algorithm: KeyAgreementAlgorithm,
+        compact_representable: bool,
+    ) -> Result<Self> {
+        let raw = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_key_agreement_private_key_generate_with_options(
+                algorithm.as_ffi(),
+                u8::from(compact_representable),
+                out,
+                out_len,
+                error_out,
+            )
+        })?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Validate and wrap an ANSI X9.63 private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_x963_representation(
+        algorithm: KeyAgreementAlgorithm,
+        x963: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let x963 = x963.into();
+        let raw = key_agreement_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::X963,
+            &x963,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this representation.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        key_agreement_private_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::X963,
+        )
+    }
+
+    /// Validate and wrap a DER private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid or if the running OS does not support DER key
+    /// representations.
+    pub fn from_der_representation(
+        algorithm: KeyAgreementAlgorithm,
+        der: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let der = der.into();
+        let raw = key_agreement_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Der,
+            &der,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support DER key representations.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        key_agreement_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+    }
+
+    /// Validate and wrap a PEM private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for the selected algorithm or if the running OS
+    /// does not support PEM key representations.
+    pub fn from_pem_representation(
+        algorithm: KeyAgreementAlgorithm,
+        pem: impl AsRef<str>,
+    ) -> Result<Self> {
+        let raw = key_agreement_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Pem,
+            pem.as_ref().as_bytes(),
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this private key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support PEM key representations.
+    pub fn pem_representation(&self) -> Result<String> {
+        utf8_key_representation(
+            "key-agreement private-key PEM representation",
+            key_agreement_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+        )
+    }
+}
+
+impl KeyAgreementPublicKey {
+    /// Validate and wrap a compact public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_compact_representation(
+        algorithm: KeyAgreementAlgorithm,
+        compact: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let compact = compact.into();
+        let raw = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Compact,
+            &compact,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in compact form when one exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support compact representations.
+    pub fn compact_representation(&self) -> Result<Option<Vec<u8>>> {
+        key_agreement_public_key_optional_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Compact,
+        )
+    }
+
+    /// Validate and wrap an ANSI X9.63 public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are not valid for the selected algorithm.
+    pub fn from_x963_representation(
+        algorithm: KeyAgreementAlgorithm,
+        x963: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let x963 = x963.into();
+        let raw = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::X963,
+            &x963,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the selected algorithm does not support this representation.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::X963)
+    }
+
+    /// Validate and wrap a compressed public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid or if the running OS does not support compressed
+    /// key representations.
+    pub fn from_compressed_representation(
+        algorithm: KeyAgreementAlgorithm,
+        compressed: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let compressed = compressed.into();
+        let raw = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Compressed,
+            &compressed,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in compressed form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support compressed key representations.
+    pub fn compressed_representation(&self) -> Result<Vec<u8>> {
+        key_agreement_public_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Compressed,
+        )
+    }
+
+    /// Validate and wrap a DER public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid or if the running OS does not support DER key
+    /// representations.
+    pub fn from_der_representation(
+        algorithm: KeyAgreementAlgorithm,
+        der: impl Into<Vec<u8>>,
+    ) -> Result<Self> {
+        let der = der.into();
+        let raw = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Der,
+            &der,
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support DER key representations.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+    }
+
+    /// Validate and wrap a PEM public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for the selected algorithm or if the running OS
+    /// does not support PEM key representations.
+    pub fn from_pem_representation(
+        algorithm: KeyAgreementAlgorithm,
+        pem: impl AsRef<str>,
+    ) -> Result<Self> {
+        let raw = key_agreement_public_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Pem,
+            pem.as_ref().as_bytes(),
+        )?;
+        Ok(Self { algorithm, raw })
+    }
+
+    /// Export this public key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the running OS does not support PEM key representations.
+    pub fn pem_representation(&self) -> Result<String> {
+        utf8_key_representation(
+            "key-agreement public-key PEM representation",
+            key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+        )
     }
 }
 

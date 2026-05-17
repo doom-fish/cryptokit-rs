@@ -1,12 +1,14 @@
 //! SHA-3 hashing helpers.
 
 use core::ffi::{c_char, c_void};
+use core::fmt;
 use std::ptr;
 use std::ptr::NonNull;
 
 use crate::error::{from_swift, CryptoKitError, Result};
 use crate::ffi;
-use crate::private::{bridge_bytes, bridge_status};
+use crate::private::{bridge_bytes, bridge_status, hex};
+use crate::sha::{Digest, HashFunction};
 
 /// SHA-3 algorithms exposed by this crate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,9 +72,31 @@ macro_rules! sha3_digest_type {
             }
         }
 
+        impl Digest for $name {
+            const BYTE_COUNT: usize = Self::BYTE_COUNT;
+
+            fn from_bytes(bytes: impl Into<Vec<u8>>) -> Result<Self> {
+                Self::from_bytes(bytes)
+            }
+
+            fn as_bytes(&self) -> &[u8] {
+                Self::as_bytes(self)
+            }
+
+            fn into_bytes(self) -> Vec<u8> {
+                Self::into_bytes(self)
+            }
+        }
+
         impl AsRef<[u8]> for $name {
             fn as_ref(&self) -> &[u8] {
                 self.as_bytes()
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(&hex(self.as_bytes()))
             }
         }
     };
@@ -152,6 +176,22 @@ macro_rules! sha3_hasher_type {
         #[derive(Debug)]
         pub struct $name(Sha3StateHandle);
 
+        impl HashFunction for $name {
+            type Digest = $digest;
+
+            fn new() -> Result<Self> {
+                Ok(Self(Sha3StateHandle::new($algorithm)?))
+            }
+
+            fn update(&mut self, data: &[u8]) -> Result<()> {
+                self.0.update(data)
+            }
+
+            fn finalize(self) -> Result<Self::Digest> {
+                $digest::from_bytes(self.0.finalize()?)
+            }
+        }
+
         impl $name {
             /// Create a fresh SHA-3 hasher.
             ///
@@ -159,7 +199,7 @@ macro_rules! sha3_hasher_type {
             ///
             /// Returns an error if the Swift bridge rejects the request.
             pub fn new() -> Result<Self> {
-                Ok(Self(Sha3StateHandle::new($algorithm)?))
+                <Self as HashFunction>::new()
             }
 
             /// Feed more bytes into the hash state.
@@ -168,7 +208,7 @@ macro_rules! sha3_hasher_type {
             ///
             /// Returns an error if the Swift bridge rejects the request.
             pub fn update(&mut self, data: &[u8]) -> Result<()> {
-                self.0.update(data)
+                <Self as HashFunction>::update(self, data)
             }
 
             /// Finalize the hash state and return a typed digest.
@@ -177,7 +217,7 @@ macro_rules! sha3_hasher_type {
             ///
             /// Returns an error if the Swift bridge rejects the request.
             pub fn finalize(self) -> Result<$digest> {
-                $digest::from_bytes(self.0.finalize()?)
+                <Self as HashFunction>::finalize(self)
             }
         }
 

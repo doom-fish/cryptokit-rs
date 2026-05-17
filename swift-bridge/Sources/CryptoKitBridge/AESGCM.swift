@@ -15,6 +15,15 @@ private func ckAesGcmNonce(
     return try AES.GCM.Nonce(data: try ckData(nonceBytes, nonceLen))
 }
 
+@_cdecl("ck_aes_gcm_nonce_generate")
+public func ck_aes_gcm_nonce_generate(
+    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
+    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    ckCopyData(AES.GCM.Nonce().withUnsafeBytes(ckOwnedData), outBytes, outLen, errorOut)
+}
+
 @_cdecl("ck_aes_gcm_seal_aad")
 public func ck_aes_gcm_seal_aad(
     _ keyBytes: UnsafePointer<UInt8>?,

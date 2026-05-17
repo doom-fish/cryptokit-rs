@@ -310,3 +310,372 @@ impl P521KeyAgreementPublicKey {
         self.0.into_raw_representation()
     }
 }
+
+
+impl P521SigningPrivateKey {
+    /// Generate a new private signing key with explicit compact-representation support.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key creation fails.
+    pub fn generate_with_compact_representable(compact_representable: bool) -> Result<Self> {
+        Ok(Self(SigningPrivateKey::generate_with_compact_representable(
+            SigningAlgorithm::P521,
+            compact_representable,
+        )?))
+    }
+
+    /// Validate and wrap an ANSI X9.63 private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPrivateKey::from_x963_representation(
+            SigningAlgorithm::P521,
+            x963,
+        )?))
+    }
+
+    /// Export this private key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        self.0.x963_representation()
+    }
+
+    /// Validate and wrap a DER private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPrivateKey::from_der_representation(
+            SigningAlgorithm::P521,
+            der,
+        )?))
+    }
+
+    /// Export this private key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        self.0.der_representation()
+    }
+
+    /// Validate and wrap a PEM private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for P521.
+    pub fn from_pem_representation(pem: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(SigningPrivateKey::from_pem_representation(
+            SigningAlgorithm::P521,
+            pem,
+        )?))
+    }
+
+    /// Export this private key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn pem_representation(&self) -> Result<String> {
+        self.0.pem_representation()
+    }
+}
+
+impl P521SigningPublicKey {
+    /// Validate and wrap a compact public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_compact_representation(compact: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPublicKey::from_compact_representation(
+            SigningAlgorithm::P521,
+            compact,
+        )?))
+    }
+
+    /// Export this public key in compact form when one exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn compact_representation(&self) -> Result<Option<Vec<u8>>> {
+        self.0.compact_representation()
+    }
+
+    /// Validate and wrap an ANSI X9.63 public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPublicKey::from_x963_representation(
+            SigningAlgorithm::P521,
+            x963,
+        )?))
+    }
+
+    /// Export this public key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        self.0.x963_representation()
+    }
+
+    /// Validate and wrap a compressed public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_compressed_representation(compressed: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPublicKey::from_compressed_representation(
+            SigningAlgorithm::P521,
+            compressed,
+        )?))
+    }
+
+    /// Export this public key in compressed form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn compressed_representation(&self) -> Result<Vec<u8>> {
+        self.0.compressed_representation()
+    }
+
+    /// Validate and wrap a DER public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(SigningPublicKey::from_der_representation(
+            SigningAlgorithm::P521,
+            der,
+        )?))
+    }
+
+    /// Export this public key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        self.0.der_representation()
+    }
+
+    /// Validate and wrap a PEM public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for P521.
+    pub fn from_pem_representation(pem: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(SigningPublicKey::from_pem_representation(
+            SigningAlgorithm::P521,
+            pem,
+        )?))
+    }
+
+    /// Export this public key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn pem_representation(&self) -> Result<String> {
+        self.0.pem_representation()
+    }
+}
+
+impl P521KeyAgreementPrivateKey {
+    /// Generate a new private key-agreement key with explicit compact-representation support.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if key creation fails.
+    pub fn generate_with_compact_representable(compact_representable: bool) -> Result<Self> {
+        Ok(Self(KeyAgreementPrivateKey::generate_with_compact_representable(
+            KeyAgreementAlgorithm::P521,
+            compact_representable,
+        )?))
+    }
+
+    /// Validate and wrap an ANSI X9.63 private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPrivateKey::from_x963_representation(
+            KeyAgreementAlgorithm::P521,
+            x963,
+        )?))
+    }
+
+    /// Export this private key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        self.0.x963_representation()
+    }
+
+    /// Validate and wrap a DER private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPrivateKey::from_der_representation(
+            KeyAgreementAlgorithm::P521,
+            der,
+        )?))
+    }
+
+    /// Export this private key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        self.0.der_representation()
+    }
+
+    /// Validate and wrap a PEM private-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for P521.
+    pub fn from_pem_representation(pem: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(KeyAgreementPrivateKey::from_pem_representation(
+            KeyAgreementAlgorithm::P521,
+            pem,
+        )?))
+    }
+
+    /// Export this private key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn pem_representation(&self) -> Result<String> {
+        self.0.pem_representation()
+    }
+}
+
+impl P521KeyAgreementPublicKey {
+    /// Validate and wrap a compact public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_compact_representation(compact: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPublicKey::from_compact_representation(
+            KeyAgreementAlgorithm::P521,
+            compact,
+        )?))
+    }
+
+    /// Export this public key in compact form when one exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn compact_representation(&self) -> Result<Option<Vec<u8>>> {
+        self.0.compact_representation()
+    }
+
+    /// Validate and wrap an ANSI X9.63 public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPublicKey::from_x963_representation(
+            KeyAgreementAlgorithm::P521,
+            x963,
+        )?))
+    }
+
+    /// Export this public key in ANSI X9.63 form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+        self.0.x963_representation()
+    }
+
+    /// Validate and wrap a compressed public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_compressed_representation(compressed: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPublicKey::from_compressed_representation(
+            KeyAgreementAlgorithm::P521,
+            compressed,
+        )?))
+    }
+
+    /// Export this public key in compressed form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn compressed_representation(&self) -> Result<Vec<u8>> {
+        self.0.compressed_representation()
+    }
+
+    /// Validate and wrap a DER public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bytes are invalid for P521.
+    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+        Ok(Self(KeyAgreementPublicKey::from_der_representation(
+            KeyAgreementAlgorithm::P521,
+            der,
+        )?))
+    }
+
+    /// Export this public key in DER form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn der_representation(&self) -> Result<Vec<u8>> {
+        self.0.der_representation()
+    }
+
+    /// Validate and wrap a PEM public-key representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the PEM is invalid for P521.
+    pub fn from_pem_representation(pem: impl AsRef<str>) -> Result<Self> {
+        Ok(Self(KeyAgreementPublicKey::from_pem_representation(
+            KeyAgreementAlgorithm::P521,
+            pem,
+        )?))
+    }
+
+    /// Export this public key in PEM form.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if export fails.
+    pub fn pem_representation(&self) -> Result<String> {
+        self.0.pem_representation()
+    }
+}

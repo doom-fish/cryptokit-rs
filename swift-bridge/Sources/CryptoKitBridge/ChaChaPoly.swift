@@ -18,6 +18,15 @@ private func ckChaChaPolyNonce(
     return try ChaChaPoly.Nonce(data: try ckData(nonceBytes, nonceLen))
 }
 
+@_cdecl("ck_chacha_poly_nonce_generate")
+public func ck_chacha_poly_nonce_generate(
+    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
+    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    ckCopyData(ChaChaPoly.Nonce().withUnsafeBytes(ckOwnedData), outBytes, outLen, errorOut)
+}
+
 @_cdecl("ck_chacha_poly_seal_aad")
 public func ck_chacha_poly_seal_aad(
     _ keyBytes: UnsafePointer<UInt8>?,

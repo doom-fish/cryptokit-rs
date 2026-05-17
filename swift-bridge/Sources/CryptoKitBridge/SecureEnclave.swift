@@ -29,6 +29,78 @@ private func ckSecureEnclaveKeyAgreementPrivateKeyHolder(from dataRepresentation
     )
 }
 
+private func ckSecureEnclaveSigningPrivateKeyHolder(
+    compactRepresentable: Bool,
+    accessibility: Int32,
+    accessControlFlags: UInt64,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> CKSecureEnclaveSigningPrivateKeyHolder {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    if let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags) {
+        return try CKSecureEnclaveSigningPrivateKeyHolder(
+            SecureEnclave.P256.Signing.PrivateKey(
+                compactRepresentable: compactRepresentable,
+                accessControl: accessControl,
+                authenticationContext: authenticationContext
+            )
+        )
+    }
+    return try CKSecureEnclaveSigningPrivateKeyHolder(
+        SecureEnclave.P256.Signing.PrivateKey(
+            compactRepresentable: compactRepresentable,
+            authenticationContext: authenticationContext
+        )
+    )
+}
+
+private func ckSecureEnclaveSigningPrivateKeyHolder(
+    from dataRepresentation: Data,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> CKSecureEnclaveSigningPrivateKeyHolder {
+    try CKSecureEnclaveSigningPrivateKeyHolder(
+        SecureEnclave.P256.Signing.PrivateKey(
+            dataRepresentation: dataRepresentation,
+            authenticationContext: try ckAuthenticationContext(authenticationContextHandle)
+        )
+    )
+}
+
+private func ckSecureEnclaveKeyAgreementPrivateKeyHolder(
+    compactRepresentable: Bool,
+    accessibility: Int32,
+    accessControlFlags: UInt64,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> CKSecureEnclaveKeyAgreementPrivateKeyHolder {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    if let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags) {
+        return try CKSecureEnclaveKeyAgreementPrivateKeyHolder(
+            SecureEnclave.P256.KeyAgreement.PrivateKey(
+                compactRepresentable: compactRepresentable,
+                accessControl: accessControl,
+                authenticationContext: authenticationContext
+            )
+        )
+    }
+    return try CKSecureEnclaveKeyAgreementPrivateKeyHolder(
+        SecureEnclave.P256.KeyAgreement.PrivateKey(
+            compactRepresentable: compactRepresentable,
+            authenticationContext: authenticationContext
+        )
+    )
+}
+
+private func ckSecureEnclaveKeyAgreementPrivateKeyHolder(
+    from dataRepresentation: Data,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> CKSecureEnclaveKeyAgreementPrivateKeyHolder {
+    try CKSecureEnclaveKeyAgreementPrivateKeyHolder(
+        SecureEnclave.P256.KeyAgreement.PrivateKey(
+            dataRepresentation: dataRepresentation,
+            authenticationContext: try ckAuthenticationContext(authenticationContextHandle)
+        )
+    )
+}
+
 @_cdecl("ck_secure_enclave_is_available")
 public func ck_secure_enclave_is_available(
     _ outAvailable: UnsafeMutablePointer<UInt8>?,
@@ -60,6 +132,34 @@ public func ck_secure_enclave_signing_private_key_generate(
     }
 }
 
+@_cdecl("ck_secure_enclave_signing_private_key_generate_with_options")
+public func ck_secure_enclave_signing_private_key_generate_with_options(
+    _ compactRepresentable: UInt8,
+    _ accessibility: Int32,
+    _ accessControlFlags: UInt64,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let holder = try ckSecureEnclaveSigningPrivateKeyHolder(
+            compactRepresentable: compactRepresentable != 0,
+            accessibility: accessibility,
+            accessControlFlags: accessControlFlags,
+            authenticationContextHandle: authenticationContext
+        )
+        return Unmanaged.passRetained(holder).toOpaque()
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
 @_cdecl("ck_secure_enclave_signing_private_key_from_data_representation")
 public func ck_secure_enclave_signing_private_key_from_data_representation(
     _ dataBytes: UnsafePointer<UInt8>?,
@@ -72,6 +172,33 @@ public func ck_secure_enclave_signing_private_key_from_data_representation(
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         return Unmanaged.passRetained(try ckSecureEnclaveSigningPrivateKeyHolder(from: dataRepresentation)).toOpaque()
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
+@_cdecl("ck_secure_enclave_signing_private_key_from_data_representation_with_context")
+public func ck_secure_enclave_signing_private_key_from_data_representation_with_context(
+    _ dataBytes: UnsafePointer<UInt8>?,
+    _ dataLen: UInt,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let dataRepresentation = try ckData(dataBytes, dataLen)
+        return Unmanaged.passRetained(
+            try ckSecureEnclaveSigningPrivateKeyHolder(
+                from: dataRepresentation,
+                authenticationContextHandle: authenticationContext
+            )
+        ).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -172,6 +299,34 @@ public func ck_secure_enclave_key_agreement_private_key_generate(
     }
 }
 
+@_cdecl("ck_secure_enclave_key_agreement_private_key_generate_with_options")
+public func ck_secure_enclave_key_agreement_private_key_generate_with_options(
+    _ compactRepresentable: UInt8,
+    _ accessibility: Int32,
+    _ accessControlFlags: UInt64,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let holder = try ckSecureEnclaveKeyAgreementPrivateKeyHolder(
+            compactRepresentable: compactRepresentable != 0,
+            accessibility: accessibility,
+            accessControlFlags: accessControlFlags,
+            authenticationContextHandle: authenticationContext
+        )
+        return Unmanaged.passRetained(holder).toOpaque()
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
 @_cdecl("ck_secure_enclave_key_agreement_private_key_from_data_representation")
 public func ck_secure_enclave_key_agreement_private_key_from_data_representation(
     _ dataBytes: UnsafePointer<UInt8>?,
@@ -184,6 +339,33 @@ public func ck_secure_enclave_key_agreement_private_key_from_data_representation
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         return Unmanaged.passRetained(try ckSecureEnclaveKeyAgreementPrivateKeyHolder(from: dataRepresentation)).toOpaque()
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
+@_cdecl("ck_secure_enclave_key_agreement_private_key_from_data_representation_with_context")
+public func ck_secure_enclave_key_agreement_private_key_from_data_representation_with_context(
+    _ dataBytes: UnsafePointer<UInt8>?,
+    _ dataLen: UInt,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let dataRepresentation = try ckData(dataBytes, dataLen)
+        return Unmanaged.passRetained(
+            try ckSecureEnclaveKeyAgreementPrivateKeyHolder(
+                from: dataRepresentation,
+                authenticationContextHandle: authenticationContext
+            )
+        ).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil

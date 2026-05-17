@@ -341,12 +341,78 @@ private func ckSecureEnclaveMldsaHolder(_ algorithm: Int32) throws -> AnyObject 
 }
 
 @available(macOS 26.0, *)
+private func ckSecureEnclaveMldsaHolder(
+    _ algorithm: Int32,
+    accessibility: Int32,
+    accessControlFlags: UInt64,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> AnyObject {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags)
+    switch algorithm {
+    case CK_MLDSA_65:
+        if let accessControl {
+            return CKSecureEnclaveMLDSA65PrivateKeyHolder(
+                try SecureEnclave.MLDSA65.PrivateKey(
+                    accessControl: accessControl,
+                    authenticationContext: authenticationContext
+                )
+            )
+        }
+        return CKSecureEnclaveMLDSA65PrivateKeyHolder(
+            try SecureEnclave.MLDSA65.PrivateKey(authenticationContext: authenticationContext)
+        )
+    case CK_MLDSA_87:
+        if let accessControl {
+            return CKSecureEnclaveMLDSA87PrivateKeyHolder(
+                try SecureEnclave.MLDSA87.PrivateKey(
+                    accessControl: accessControl,
+                    authenticationContext: authenticationContext
+                )
+            )
+        }
+        return CKSecureEnclaveMLDSA87PrivateKeyHolder(
+            try SecureEnclave.MLDSA87.PrivateKey(authenticationContext: authenticationContext)
+        )
+    default:
+        throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
+    }
+}
+
+@available(macOS 26.0, *)
 private func ckSecureEnclaveMldsaHolder(_ algorithm: Int32, dataRepresentation: Data) throws -> AnyObject {
     switch algorithm {
     case CK_MLDSA_65:
         return CKSecureEnclaveMLDSA65PrivateKeyHolder(try SecureEnclave.MLDSA65.PrivateKey(dataRepresentation: dataRepresentation))
     case CK_MLDSA_87:
         return CKSecureEnclaveMLDSA87PrivateKeyHolder(try SecureEnclave.MLDSA87.PrivateKey(dataRepresentation: dataRepresentation))
+    default:
+        throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
+    }
+}
+
+@available(macOS 26.0, *)
+private func ckSecureEnclaveMldsaHolder(
+    _ algorithm: Int32,
+    dataRepresentation: Data,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> AnyObject {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    switch algorithm {
+    case CK_MLDSA_65:
+        return CKSecureEnclaveMLDSA65PrivateKeyHolder(
+            try SecureEnclave.MLDSA65.PrivateKey(
+                dataRepresentation: dataRepresentation,
+                authenticationContext: authenticationContext
+            )
+        )
+    case CK_MLDSA_87:
+        return CKSecureEnclaveMLDSA87PrivateKeyHolder(
+            try SecureEnclave.MLDSA87.PrivateKey(
+                dataRepresentation: dataRepresentation,
+                authenticationContext: authenticationContext
+            )
+        )
     default:
         throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
     }
@@ -418,12 +484,78 @@ private func ckSecureEnclaveKemHolder(_ algorithm: Int32) throws -> AnyObject {
 }
 
 @available(macOS 26.0, *)
+private func ckSecureEnclaveKemHolder(
+    _ algorithm: Int32,
+    accessibility: Int32,
+    accessControlFlags: UInt64,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> AnyObject {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags)
+    switch algorithm {
+    case CK_KEM_MLKEM768:
+        if let accessControl {
+            return CKSecureEnclaveMLKEM768PrivateKeyHolder(
+                try SecureEnclave.MLKEM768.PrivateKey(
+                    accessControl: accessControl,
+                    authenticationContext: authenticationContext
+                )
+            )
+        }
+        return CKSecureEnclaveMLKEM768PrivateKeyHolder(
+            try SecureEnclave.MLKEM768.PrivateKey(authenticationContext: authenticationContext)
+        )
+    case CK_KEM_MLKEM1024:
+        if let accessControl {
+            return CKSecureEnclaveMLKEM1024PrivateKeyHolder(
+                try SecureEnclave.MLKEM1024.PrivateKey(
+                    accessControl: accessControl,
+                    authenticationContext: authenticationContext
+                )
+            )
+        }
+        return CKSecureEnclaveMLKEM1024PrivateKeyHolder(
+            try SecureEnclave.MLKEM1024.PrivateKey(authenticationContext: authenticationContext)
+        )
+    default:
+        throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
+    }
+}
+
+@available(macOS 26.0, *)
 private func ckSecureEnclaveKemHolder(_ algorithm: Int32, dataRepresentation: Data) throws -> AnyObject {
     switch algorithm {
     case CK_KEM_MLKEM768:
         return CKSecureEnclaveMLKEM768PrivateKeyHolder(try SecureEnclave.MLKEM768.PrivateKey(dataRepresentation: dataRepresentation))
     case CK_KEM_MLKEM1024:
         return CKSecureEnclaveMLKEM1024PrivateKeyHolder(try SecureEnclave.MLKEM1024.PrivateKey(dataRepresentation: dataRepresentation))
+    default:
+        throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
+    }
+}
+
+@available(macOS 26.0, *)
+private func ckSecureEnclaveKemHolder(
+    _ algorithm: Int32,
+    dataRepresentation: Data,
+    authenticationContextHandle: UnsafeMutableRawPointer?
+) throws -> AnyObject {
+    let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
+    switch algorithm {
+    case CK_KEM_MLKEM768:
+        return CKSecureEnclaveMLKEM768PrivateKeyHolder(
+            try SecureEnclave.MLKEM768.PrivateKey(
+                dataRepresentation: dataRepresentation,
+                authenticationContext: authenticationContext
+            )
+        )
+    case CK_KEM_MLKEM1024:
+        return CKSecureEnclaveMLKEM1024PrivateKeyHolder(
+            try SecureEnclave.MLKEM1024.PrivateKey(
+                dataRepresentation: dataRepresentation,
+                authenticationContext: authenticationContext
+            )
+        )
     default:
         throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
     }
@@ -907,6 +1039,46 @@ public func ck_secure_enclave_mldsa_private_key_generate(
     }
 }
 
+@_cdecl("ck_secure_enclave_mldsa_private_key_generate_with_options")
+public func ck_secure_enclave_mldsa_private_key_generate_with_options(
+    _ algorithm: Int32,
+    _ accessibility: Int32,
+    _ accessControlFlags: UInt64,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    guard #available(macOS 26.0, *) else {
+        ckWriteError(errorOut, "Secure Enclave post-quantum APIs require macOS 26.0 or newer")
+        return nil
+    }
+
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let holder = try ckSecureEnclaveMldsaHolder(
+            algorithm,
+            accessibility: accessibility,
+            accessControlFlags: accessControlFlags,
+            authenticationContextHandle: authenticationContext
+        )
+        switch algorithm {
+        case CK_MLDSA_65:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
+        case CK_MLDSA_87:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
+        default:
+            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
+        }
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
 @_cdecl("ck_secure_enclave_mldsa_private_key_from_data_representation")
 public func ck_secure_enclave_mldsa_private_key_from_data_representation(
     _ algorithm: Int32,
@@ -925,6 +1097,46 @@ public func ck_secure_enclave_mldsa_private_key_from_data_representation(
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         let holder = try ckSecureEnclaveMldsaHolder(algorithm, dataRepresentation: dataRepresentation)
+        switch algorithm {
+        case CK_MLDSA_65:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
+        case CK_MLDSA_87:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
+        default:
+            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
+        }
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
+@_cdecl("ck_secure_enclave_mldsa_private_key_from_data_representation_with_context")
+public func ck_secure_enclave_mldsa_private_key_from_data_representation_with_context(
+    _ algorithm: Int32,
+    _ dataBytes: UnsafePointer<UInt8>?,
+    _ dataLen: UInt,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    guard #available(macOS 26.0, *) else {
+        ckWriteError(errorOut, "Secure Enclave post-quantum APIs require macOS 26.0 or newer")
+        return nil
+    }
+
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let dataRepresentation = try ckData(dataBytes, dataLen)
+        let holder = try ckSecureEnclaveMldsaHolder(
+            algorithm,
+            dataRepresentation: dataRepresentation,
+            authenticationContextHandle: authenticationContext
+        )
         switch algorithm {
         case CK_MLDSA_65:
             return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
@@ -1071,6 +1283,46 @@ public func ck_secure_enclave_kem_private_key_generate(
     }
 }
 
+@_cdecl("ck_secure_enclave_kem_private_key_generate_with_options")
+public func ck_secure_enclave_kem_private_key_generate_with_options(
+    _ algorithm: Int32,
+    _ accessibility: Int32,
+    _ accessControlFlags: UInt64,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    guard #available(macOS 26.0, *) else {
+        ckWriteError(errorOut, "Secure Enclave post-quantum APIs require macOS 26.0 or newer")
+        return nil
+    }
+
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let holder = try ckSecureEnclaveKemHolder(
+            algorithm,
+            accessibility: accessibility,
+            accessControlFlags: accessControlFlags,
+            authenticationContextHandle: authenticationContext
+        )
+        switch algorithm {
+        case CK_KEM_MLKEM768:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
+        case CK_KEM_MLKEM1024:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
+        default:
+            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
+        }
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
 @_cdecl("ck_secure_enclave_kem_private_key_from_data_representation")
 public func ck_secure_enclave_kem_private_key_from_data_representation(
     _ algorithm: Int32,
@@ -1089,6 +1341,46 @@ public func ck_secure_enclave_kem_private_key_from_data_representation(
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         let holder = try ckSecureEnclaveKemHolder(algorithm, dataRepresentation: dataRepresentation)
+        switch algorithm {
+        case CK_KEM_MLKEM768:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
+        case CK_KEM_MLKEM1024:
+            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
+        default:
+            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
+        }
+    } catch let error as CKBridgeError {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    } catch {
+        ckWriteError(errorOut, error.localizedDescription)
+        return nil
+    }
+}
+
+@_cdecl("ck_secure_enclave_kem_private_key_from_data_representation_with_context")
+public func ck_secure_enclave_kem_private_key_from_data_representation_with_context(
+    _ algorithm: Int32,
+    _ dataBytes: UnsafePointer<UInt8>?,
+    _ dataLen: UInt,
+    _ authenticationContext: UnsafeMutableRawPointer?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> UnsafeMutableRawPointer? {
+    guard #available(macOS 26.0, *) else {
+        ckWriteError(errorOut, "Secure Enclave post-quantum APIs require macOS 26.0 or newer")
+        return nil
+    }
+
+    do {
+        guard SecureEnclave.isAvailable else {
+            throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
+        }
+        let dataRepresentation = try ckData(dataBytes, dataLen)
+        let holder = try ckSecureEnclaveKemHolder(
+            algorithm,
+            dataRepresentation: dataRepresentation,
+            authenticationContextHandle: authenticationContext
+        )
         switch algorithm {
         case CK_KEM_MLKEM768:
             return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()

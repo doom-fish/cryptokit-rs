@@ -1,6 +1,7 @@
 //! Secure Enclave-backed P-256 keys.
 
 use core::ffi::{c_char, c_void};
+use core::ops::{BitOr, BitOrAssign};
 use std::ptr;
 use std::ptr::NonNull;
 
@@ -10,7 +11,7 @@ use crate::kem::{KemAlgorithm, Mlkem1024PublicKey, Mlkem768PublicKey};
 use crate::key_agreement::DiffieHellmanKeyAgreement;
 use crate::mldsa::{Mldsa65PublicKey, Mldsa87PublicKey, MldsaAlgorithm};
 use crate::p256::{P256EcdsaSignature, P256KeyAgreementPublicKey, P256SigningPublicKey};
-use crate::private::{bridge_bytes, bridge_flag};
+use crate::private::{bridge_bytes, bridge_flag, bridge_status};
 use crate::public_key::SharedSecret;
 use crate::symmetric::SymmetricKey;
 
@@ -23,6 +24,249 @@ pub fn is_available() -> Result<bool> {
     bridge_flag(|out_available, error_out| unsafe {
         ffi::ck_secure_enclave_is_available(out_available, error_out)
     })
+}
+
+fn bridge_secure_enclave_handle<F>(call: F) -> Result<NonNull<c_void>>
+where
+    F: FnOnce(*mut *mut c_char) -> *mut c_void,
+{
+    let mut error: *mut c_char = ptr::null_mut();
+    let handle = call(&mut error);
+    NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))
+}
+
+#[allow(clippy::missing_const_for_fn)]
+fn secure_enclave_access_control_parts(
+    access_control: Option<&SecureEnclaveAccessControl>,
+) -> (i32, u64) {
+    access_control.map_or(
+        (ffi::secure_enclave_accessibility::DEFAULT, 0),
+        |access_control| {
+            (
+                access_control.accessibility.as_ffi(),
+                access_control.flags.bits(),
+            )
+        },
+    )
+}
+
+fn authentication_context_handle(
+    authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+) -> *mut c_void {
+    authentication_context.map_or(ptr::null_mut(), |context| context.handle.as_ptr())
+}
+
+/// The Keychain accessibility class used for Secure Enclave key creation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SecureEnclaveAccessibility {
+    AfterFirstUnlockThisDeviceOnly,
+    WhenUnlockedThisDeviceOnly,
+    WhenPasscodeSetThisDeviceOnly,
+    AfterFirstUnlock,
+    WhenUnlocked,
+    AlwaysThisDeviceOnly,
+    Always,
+}
+
+impl SecureEnclaveAccessibility {
+    const fn as_ffi(self) -> i32 {
+        match self {
+            Self::AfterFirstUnlockThisDeviceOnly => {
+                ffi::secure_enclave_accessibility::AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY
+            }
+            Self::WhenUnlockedThisDeviceOnly => {
+                ffi::secure_enclave_accessibility::WHEN_UNLOCKED_THIS_DEVICE_ONLY
+            }
+            Self::WhenPasscodeSetThisDeviceOnly => {
+                ffi::secure_enclave_accessibility::WHEN_PASSCODE_SET_THIS_DEVICE_ONLY
+            }
+            Self::AfterFirstUnlock => ffi::secure_enclave_accessibility::AFTER_FIRST_UNLOCK,
+            Self::WhenUnlocked => ffi::secure_enclave_accessibility::WHEN_UNLOCKED,
+            Self::AlwaysThisDeviceOnly => {
+                ffi::secure_enclave_accessibility::ALWAYS_THIS_DEVICE_ONLY
+            }
+            Self::Always => ffi::secure_enclave_accessibility::ALWAYS,
+        }
+    }
+}
+
+/// Bitflags applied when creating a Secure Enclave `SecAccessControl` object.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct SecureEnclaveAccessControlFlags(u64);
+
+impl SecureEnclaveAccessControlFlags {
+    pub const USER_PRESENCE: Self = Self(1_u64 << 0);
+    pub const BIOMETRY_ANY: Self = Self(1_u64 << 1);
+    pub const BIOMETRY_CURRENT_SET: Self = Self(1_u64 << 3);
+    pub const DEVICE_PASSCODE: Self = Self(1_u64 << 4);
+    pub const COMPANION: Self = Self(1_u64 << 5);
+    pub const OR: Self = Self(1_u64 << 14);
+    pub const AND: Self = Self(1_u64 << 15);
+    pub const PRIVATE_KEY_USAGE: Self = Self(1_u64 << 30);
+    pub const APPLICATION_PASSWORD: Self = Self(1_u64 << 31);
+
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self(0)
+    }
+
+    #[must_use]
+    pub const fn bits(self) -> u64 {
+        self.0
+    }
+}
+
+impl BitOr for SecureEnclaveAccessControlFlags {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self(self.0 | rhs.0)
+    }
+}
+
+impl BitOrAssign for SecureEnclaveAccessControlFlags {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+}
+
+/// A Rust-friendly description of the `SecAccessControl` policy used for a new key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SecureEnclaveAccessControl {
+    accessibility: SecureEnclaveAccessibility,
+    flags: SecureEnclaveAccessControlFlags,
+}
+
+impl SecureEnclaveAccessControl {
+    #[must_use]
+    pub const fn new(
+        accessibility: SecureEnclaveAccessibility,
+        flags: SecureEnclaveAccessControlFlags,
+    ) -> Self {
+        Self {
+            accessibility,
+            flags,
+        }
+    }
+
+    #[must_use]
+    pub const fn accessibility(self) -> SecureEnclaveAccessibility {
+        self.accessibility
+    }
+
+    #[must_use]
+    pub const fn flags(self) -> SecureEnclaveAccessControlFlags {
+        self.flags
+    }
+}
+
+impl Default for SecureEnclaveAccessControl {
+    fn default() -> Self {
+        Self::new(
+            SecureEnclaveAccessibility::AfterFirstUnlockThisDeviceOnly,
+            SecureEnclaveAccessControlFlags::empty(),
+        )
+    }
+}
+
+/// A configurable `LocalAuthentication` context for Secure Enclave operations.
+#[derive(Debug)]
+pub struct SecureEnclaveAuthenticationContext {
+    handle: NonNull<c_void>,
+}
+
+impl SecureEnclaveAuthenticationContext {
+    /// Create a new authentication context.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    pub fn new() -> Result<Self> {
+        let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+            ffi::ck_authentication_context_create(error_out)
+        })?;
+        Ok(Self { handle })
+    }
+
+    /// Set whether evaluation UI interaction is allowed.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    pub fn set_interaction_not_allowed(&mut self, value: bool) -> Result<&mut Self> {
+        bridge_status(|error_out| unsafe {
+            ffi::ck_authentication_context_set_interaction_not_allowed(
+                self.handle.as_ptr(),
+                u8::from(value),
+                error_out,
+            )
+        })?;
+        Ok(self)
+    }
+
+    /// Set the Touch ID reuse duration in seconds.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    pub fn set_touch_id_authentication_allowable_reuse_duration(
+        &mut self,
+        duration_seconds: f64,
+    ) -> Result<&mut Self> {
+        bridge_status(|error_out| unsafe {
+            ffi::ck_authentication_context_set_touch_id_reuse_duration(
+                self.handle.as_ptr(),
+                duration_seconds,
+                error_out,
+            )
+        })?;
+        Ok(self)
+    }
+
+    /// Set or clear the localized fallback title.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    pub fn set_localized_fallback_title(&mut self, title: Option<&str>) -> Result<&mut Self> {
+        let (title_bytes, title_len) =
+            title.map_or((ptr::null(), 0), |value| (value.as_bytes().as_ptr(), value.len()));
+        bridge_status(|error_out| unsafe {
+            ffi::ck_authentication_context_set_localized_fallback_title(
+                self.handle.as_ptr(),
+                title_bytes,
+                title_len,
+                error_out,
+            )
+        })?;
+        Ok(self)
+    }
+
+    /// Set or clear the localized cancel title.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the Swift bridge rejects the request.
+    pub fn set_localized_cancel_title(&mut self, title: Option<&str>) -> Result<&mut Self> {
+        let (title_bytes, title_len) =
+            title.map_or((ptr::null(), 0), |value| (value.as_bytes().as_ptr(), value.len()));
+        bridge_status(|error_out| unsafe {
+            ffi::ck_authentication_context_set_localized_cancel_title(
+                self.handle.as_ptr(),
+                title_bytes,
+                title_len,
+                error_out,
+            )
+        })?;
+        Ok(self)
+    }
+}
+
+impl Drop for SecureEnclaveAuthenticationContext {
+    fn drop(&mut self) {
+        unsafe { ffi::ck_authentication_context_release(self.handle.as_ptr()) };
+    }
 }
 
 /// A Secure Enclave-backed P-256 signing private key.
@@ -38,10 +282,30 @@ impl SecureEnclaveSigningPrivateKey {
     ///
     /// Returns an error if Secure Enclave is unavailable or key creation fails.
     pub fn generate() -> Result<Self> {
-        let mut error: *mut c_char = ptr::null_mut();
-        let handle = unsafe { ffi::ck_secure_enclave_signing_private_key_generate(&mut error) };
-        let handle =
-            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        Self::generate_with_options(true, None, None)
+    }
+
+    /// Generate a new Secure Enclave signing key with explicit creation options.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Secure Enclave is unavailable or key creation fails.
+    pub fn generate_with_options(
+        compact_representable: bool,
+        access_control: Option<&SecureEnclaveAccessControl>,
+        authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+    ) -> Result<Self> {
+        let (accessibility, access_control_flags) =
+            secure_enclave_access_control_parts(access_control);
+        let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+            ffi::ck_secure_enclave_signing_private_key_generate_with_options(
+                u8::from(compact_representable),
+                accessibility,
+                access_control_flags,
+                authentication_context_handle(authentication_context),
+                error_out,
+            )
+        })?;
         Ok(Self { handle })
     }
 
@@ -51,16 +315,26 @@ impl SecureEnclaveSigningPrivateKey {
     ///
     /// Returns an error if Secure Enclave is unavailable or the persisted bytes are invalid.
     pub fn from_data_representation(data_representation: &[u8]) -> Result<Self> {
-        let mut error: *mut c_char = ptr::null_mut();
-        let handle = unsafe {
-            ffi::ck_secure_enclave_signing_private_key_from_data_representation(
+        Self::from_data_representation_with_authentication_context(data_representation, None)
+    }
+
+    /// Restore a Secure Enclave signing key with an explicit authentication context.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Secure Enclave is unavailable or the persisted bytes are invalid.
+    pub fn from_data_representation_with_authentication_context(
+        data_representation: &[u8],
+        authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+    ) -> Result<Self> {
+        let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+            ffi::ck_secure_enclave_signing_private_key_from_data_representation_with_context(
                 data_representation.as_ptr(),
                 data_representation.len(),
-                &mut error,
+                authentication_context_handle(authentication_context),
+                error_out,
             )
-        };
-        let handle =
-            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        })?;
         Ok(Self { handle })
     }
 
@@ -144,11 +418,30 @@ impl SecureEnclaveKeyAgreementPrivateKey {
     ///
     /// Returns an error if Secure Enclave is unavailable or key creation fails.
     pub fn generate() -> Result<Self> {
-        let mut error: *mut c_char = ptr::null_mut();
-        let handle =
-            unsafe { ffi::ck_secure_enclave_key_agreement_private_key_generate(&mut error) };
-        let handle =
-            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        Self::generate_with_options(true, None, None)
+    }
+
+    /// Generate a new Secure Enclave key-agreement key with explicit creation options.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Secure Enclave is unavailable or key creation fails.
+    pub fn generate_with_options(
+        compact_representable: bool,
+        access_control: Option<&SecureEnclaveAccessControl>,
+        authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+    ) -> Result<Self> {
+        let (accessibility, access_control_flags) =
+            secure_enclave_access_control_parts(access_control);
+        let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+            ffi::ck_secure_enclave_key_agreement_private_key_generate_with_options(
+                u8::from(compact_representable),
+                accessibility,
+                access_control_flags,
+                authentication_context_handle(authentication_context),
+                error_out,
+            )
+        })?;
         Ok(Self { handle })
     }
 
@@ -158,16 +451,26 @@ impl SecureEnclaveKeyAgreementPrivateKey {
     ///
     /// Returns an error if Secure Enclave is unavailable or the persisted bytes are invalid.
     pub fn from_data_representation(data_representation: &[u8]) -> Result<Self> {
-        let mut error: *mut c_char = ptr::null_mut();
-        let handle = unsafe {
-            ffi::ck_secure_enclave_key_agreement_private_key_from_data_representation(
+        Self::from_data_representation_with_authentication_context(data_representation, None)
+    }
+
+    /// Restore a Secure Enclave key-agreement key with an explicit authentication context.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if Secure Enclave is unavailable or the persisted bytes are invalid.
+    pub fn from_data_representation_with_authentication_context(
+        data_representation: &[u8],
+        authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+    ) -> Result<Self> {
+        let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+            ffi::ck_secure_enclave_key_agreement_private_key_from_data_representation_with_context(
                 data_representation.as_ptr(),
                 data_representation.len(),
-                &mut error,
+                authentication_context_handle(authentication_context),
+                error_out,
             )
-        };
-        let handle =
-            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        })?;
         Ok(Self { handle })
     }
 
@@ -257,12 +560,29 @@ macro_rules! secure_enclave_mldsa_key {
             ///
             /// Returns an error if Secure Enclave is unavailable or key creation fails.
             pub fn generate() -> Result<Self> {
-                let mut error: *mut c_char = ptr::null_mut();
-                let handle = unsafe {
-                    ffi::ck_secure_enclave_mldsa_private_key_generate($algorithm.as_ffi(), &mut error)
-                };
-                let handle =
-                    NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+                Self::generate_with_options(None, None)
+            }
+
+            /// Generate a new Secure Enclave private key with explicit creation options.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if Secure Enclave is unavailable or key creation fails.
+            pub fn generate_with_options(
+                access_control: Option<&SecureEnclaveAccessControl>,
+                authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+            ) -> Result<Self> {
+                let (accessibility, access_control_flags) =
+                    secure_enclave_access_control_parts(access_control);
+                let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+                    ffi::ck_secure_enclave_mldsa_private_key_generate_with_options(
+                        $algorithm.as_ffi(),
+                        accessibility,
+                        access_control_flags,
+                        authentication_context_handle(authentication_context),
+                        error_out,
+                    )
+                })?;
                 Ok(Self { handle })
             }
 
@@ -272,17 +592,30 @@ macro_rules! secure_enclave_mldsa_key {
             ///
             /// Returns an error if Secure Enclave is unavailable or the bytes are invalid.
             pub fn from_data_representation(data_representation: &[u8]) -> Result<Self> {
-                let mut error: *mut c_char = ptr::null_mut();
-                let handle = unsafe {
-                    ffi::ck_secure_enclave_mldsa_private_key_from_data_representation(
+                Self::from_data_representation_with_authentication_context(
+                    data_representation,
+                    None,
+                )
+            }
+
+            /// Restore a Secure Enclave private key with an explicit authentication context.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if Secure Enclave is unavailable or the bytes are invalid.
+            pub fn from_data_representation_with_authentication_context(
+                data_representation: &[u8],
+                authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+            ) -> Result<Self> {
+                let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+                    ffi::ck_secure_enclave_mldsa_private_key_from_data_representation_with_context(
                         $algorithm.as_ffi(),
                         data_representation.as_ptr(),
                         data_representation.len(),
-                        &mut error,
+                        authentication_context_handle(authentication_context),
+                        error_out,
                     )
-                };
-                let handle =
-                    NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+                })?;
                 Ok(Self { handle })
             }
 
@@ -385,12 +718,29 @@ macro_rules! secure_enclave_kem_key {
             ///
             /// Returns an error if Secure Enclave is unavailable or key creation fails.
             pub fn generate() -> Result<Self> {
-                let mut error: *mut c_char = ptr::null_mut();
-                let handle = unsafe {
-                    ffi::ck_secure_enclave_kem_private_key_generate($algorithm.as_ffi(), &mut error)
-                };
-                let handle =
-                    NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+                Self::generate_with_options(None, None)
+            }
+
+            /// Generate a new Secure Enclave private key with explicit creation options.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if Secure Enclave is unavailable or key creation fails.
+            pub fn generate_with_options(
+                access_control: Option<&SecureEnclaveAccessControl>,
+                authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+            ) -> Result<Self> {
+                let (accessibility, access_control_flags) =
+                    secure_enclave_access_control_parts(access_control);
+                let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+                    ffi::ck_secure_enclave_kem_private_key_generate_with_options(
+                        $algorithm.as_ffi(),
+                        accessibility,
+                        access_control_flags,
+                        authentication_context_handle(authentication_context),
+                        error_out,
+                    )
+                })?;
                 Ok(Self { handle })
             }
 
@@ -400,17 +750,30 @@ macro_rules! secure_enclave_kem_key {
             ///
             /// Returns an error if Secure Enclave is unavailable or the bytes are invalid.
             pub fn from_data_representation(data_representation: &[u8]) -> Result<Self> {
-                let mut error: *mut c_char = ptr::null_mut();
-                let handle = unsafe {
-                    ffi::ck_secure_enclave_kem_private_key_from_data_representation(
+                Self::from_data_representation_with_authentication_context(
+                    data_representation,
+                    None,
+                )
+            }
+
+            /// Restore a Secure Enclave private key with an explicit authentication context.
+            ///
+            /// # Errors
+            ///
+            /// Returns an error if Secure Enclave is unavailable or the bytes are invalid.
+            pub fn from_data_representation_with_authentication_context(
+                data_representation: &[u8],
+                authentication_context: Option<&SecureEnclaveAuthenticationContext>,
+            ) -> Result<Self> {
+                let handle = bridge_secure_enclave_handle(|error_out| unsafe {
+                    ffi::ck_secure_enclave_kem_private_key_from_data_representation_with_context(
                         $algorithm.as_ffi(),
                         data_representation.as_ptr(),
                         data_representation.len(),
-                        &mut error,
+                        authentication_context_handle(authentication_context),
+                        error_out,
                     )
-                };
-                let handle =
-                    NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+                })?;
                 Ok(Self { handle })
             }
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.2] - 2026-05-17
+
+### Added
+
+- Typed SHA-256 / SHA-384 / SHA-512 / MD5 / SHA-1 digest values plus streaming hash state and `SHA2_*` compatibility aliases.
+- Typed HMAC values, streaming HMAC state, verification helpers, and HKDF `extract` / `expand` wrappers.
+- Typed `AES.GCM.Nonce` / `ChaChaPoly.Nonce` wrappers, sealed-box reconstruction helpers, and typed nonce APIs.
+- Alternate P-256 / P-384 / P-521 key encodings (`compact`, `x963`, `compressed`, `pem`, `der`) across the generic and typed signing/key-agreement wrappers.
+- Secure Enclave access-control and authentication-context builders, plus explicit-option creation / restore flows for P-256 and Secure Enclave post-quantum keys.
+- New integration tests and numbered examples covering typed hashing, key representations, alternate encodings, and Secure Enclave option plumbing.
+
+### Changed
+
+- Bumped the crate version to `0.2.2` and refreshed the docs/coverage audit to reflect the filled CryptoKit surface.
+- Kept the Swift bridge build baseline at macOS 10.15 while routing newer key-representation and Secure Enclave APIs through runtime availability checks.
+
 ## [0.2.1] - 2026-05-16
 
 ### Added
