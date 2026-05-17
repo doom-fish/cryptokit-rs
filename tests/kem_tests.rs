@@ -1,6 +1,4 @@
-use cryptokit::kem::{
-    Mlkem1024PrivateKey, Mlkem768PrivateKey, XWingMlkem768X25519PrivateKey,
-};
+use cryptokit::kem::{Mlkem1024PrivateKey, Mlkem768PrivateKey, XWingMlkem768X25519PrivateKey};
 use cryptokit::Result;
 
 #[test]
@@ -13,8 +11,10 @@ fn post_quantum_kems_round_trip() -> Result<()> {
         mlkem768_decapsulated.as_bytes(),
         mlkem768_encapsulation.shared_secret().as_bytes()
     );
-    let mlkem768_restored =
-        Mlkem768PrivateKey::from_seed_representation(mlkem768.seed_representation()?, Some(&mlkem768_public))?;
+    let mlkem768_restored = Mlkem768PrivateKey::from_seed_representation(
+        mlkem768.seed_representation()?,
+        Some(&mlkem768_public),
+    )?;
     assert_eq!(
         mlkem768_restored.public_key()?.raw_representation(),
         mlkem768_public.raw_representation()

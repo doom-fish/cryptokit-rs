@@ -7,7 +7,9 @@ use std::ptr::NonNull;
 use crate::curve25519::{X25519PrivateKey, X25519PublicKey};
 use crate::error::{from_swift, Result};
 use crate::ffi;
-use crate::kem::{KemPrivateKey, KemPublicKey, XWingMlkem768X25519PrivateKey, XWingMlkem768X25519PublicKey};
+use crate::kem::{
+    KemPrivateKey, KemPublicKey, XWingMlkem768X25519PrivateKey, XWingMlkem768X25519PublicKey,
+};
 use crate::key_agreement::DiffieHellmanKeyAgreement;
 use crate::p256::{P256KeyAgreementPrivateKey, P256KeyAgreementPublicKey};
 use crate::p384::{P384KeyAgreementPrivateKey, P384KeyAgreementPublicKey};
@@ -295,7 +297,8 @@ impl Sender {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -335,7 +338,8 @@ impl Sender {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -376,7 +380,8 @@ impl Sender {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -419,7 +424,8 @@ impl Sender {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -450,7 +456,8 @@ impl Sender {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -567,7 +574,8 @@ impl Recipient {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -612,7 +620,8 @@ impl Recipient {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -656,7 +665,8 @@ impl Recipient {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -702,7 +712,8 @@ impl Recipient {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -738,7 +749,8 @@ impl Recipient {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
         Ok(Self { handle })
     }
 
@@ -756,7 +768,11 @@ impl Recipient {
     /// # Errors
     ///
     /// Returns an error if the Swift bridge rejects the request.
-    pub fn open_with_aad(&mut self, ciphertext: &[u8], authenticated_data: &[u8]) -> Result<Vec<u8>> {
+    pub fn open_with_aad(
+        &mut self,
+        ciphertext: &[u8],
+        authenticated_data: &[u8],
+    ) -> Result<Vec<u8>> {
         bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_hpke_recipient_open(
                 self.handle.as_ptr(),

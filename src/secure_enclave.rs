@@ -230,8 +230,9 @@ impl SecureEnclaveAuthenticationContext {
     ///
     /// Returns an error if the Swift bridge rejects the request.
     pub fn set_localized_fallback_title(&mut self, title: Option<&str>) -> Result<&mut Self> {
-        let (title_bytes, title_len) =
-            title.map_or((ptr::null(), 0), |value| (value.as_bytes().as_ptr(), value.len()));
+        let (title_bytes, title_len) = title.map_or((ptr::null(), 0), |value| {
+            (value.as_bytes().as_ptr(), value.len())
+        });
         bridge_status(|error_out| unsafe {
             ffi::ck_authentication_context_set_localized_fallback_title(
                 self.handle.as_ptr(),
@@ -249,8 +250,9 @@ impl SecureEnclaveAuthenticationContext {
     ///
     /// Returns an error if the Swift bridge rejects the request.
     pub fn set_localized_cancel_title(&mut self, title: Option<&str>) -> Result<&mut Self> {
-        let (title_bytes, title_len) =
-            title.map_or((ptr::null(), 0), |value| (value.as_bytes().as_ptr(), value.len()));
+        let (title_bytes, title_len) = title.map_or((ptr::null(), 0), |value| {
+            (value.as_bytes().as_ptr(), value.len())
+        });
         bridge_status(|error_out| unsafe {
             ffi::ck_authentication_context_set_localized_cancel_title(
                 self.handle.as_ptr(),

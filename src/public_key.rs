@@ -57,11 +57,8 @@ impl SigningPrivateKey {
         raw: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let raw = raw.into();
-        let canonical = signing_private_key_from_representation(
-            algorithm,
-            KeyRepresentationFormat::Raw,
-            &raw,
-        )?;
+        let canonical =
+            signing_private_key_from_representation(algorithm, KeyRepresentationFormat::Raw, &raw)?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -641,11 +638,8 @@ impl SigningPrivateKey {
         der: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let der = der.into();
-        let raw = signing_private_key_from_representation(
-            algorithm,
-            KeyRepresentationFormat::Der,
-            &der,
-        )?;
+        let raw =
+            signing_private_key_from_representation(algorithm, KeyRepresentationFormat::Der, &der)?;
         Ok(Self { algorithm, raw })
     }
 
@@ -684,7 +678,11 @@ impl SigningPrivateKey {
     pub fn pem_representation(&self) -> Result<String> {
         utf8_key_representation(
             "signing private-key PEM representation",
-            signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+            signing_private_key_representation(
+                self.algorithm,
+                &self.raw,
+                KeyRepresentationFormat::Pem,
+            )?,
         )
     }
 }
@@ -791,11 +789,8 @@ impl SigningPublicKey {
         der: impl Into<Vec<u8>>,
     ) -> Result<Self> {
         let der = der.into();
-        let raw = signing_public_key_from_representation(
-            algorithm,
-            KeyRepresentationFormat::Der,
-            &der,
-        )?;
+        let raw =
+            signing_public_key_from_representation(algorithm, KeyRepresentationFormat::Der, &der)?;
         Ok(Self { algorithm, raw })
     }
 
@@ -834,7 +829,11 @@ impl SigningPublicKey {
     pub fn pem_representation(&self) -> Result<String> {
         utf8_key_representation(
             "signing public-key PEM representation",
-            signing_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+            signing_public_key_representation(
+                self.algorithm,
+                &self.raw,
+                KeyRepresentationFormat::Pem,
+            )?,
         )
     }
 }
@@ -918,7 +917,11 @@ impl KeyAgreementPrivateKey {
     ///
     /// Returns an error if the running OS does not support DER key representations.
     pub fn der_representation(&self) -> Result<Vec<u8>> {
-        key_agreement_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+        key_agreement_private_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Der,
+        )
     }
 
     /// Validate and wrap a PEM private-key representation.
@@ -947,7 +950,11 @@ impl KeyAgreementPrivateKey {
     pub fn pem_representation(&self) -> Result<String> {
         utf8_key_representation(
             "key-agreement private-key PEM representation",
-            key_agreement_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+            key_agreement_private_key_representation(
+                self.algorithm,
+                &self.raw,
+                KeyRepresentationFormat::Pem,
+            )?,
         )
     }
 }
@@ -1008,7 +1015,11 @@ impl KeyAgreementPublicKey {
     ///
     /// Returns an error if the selected algorithm does not support this representation.
     pub fn x963_representation(&self) -> Result<Vec<u8>> {
-        key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::X963)
+        key_agreement_public_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::X963,
+        )
     }
 
     /// Validate and wrap a compressed public-key representation.
@@ -1068,7 +1079,11 @@ impl KeyAgreementPublicKey {
     ///
     /// Returns an error if the running OS does not support DER key representations.
     pub fn der_representation(&self) -> Result<Vec<u8>> {
-        key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
+        key_agreement_public_key_representation(
+            self.algorithm,
+            &self.raw,
+            KeyRepresentationFormat::Der,
+        )
     }
 
     /// Validate and wrap a PEM public-key representation.
@@ -1097,7 +1112,11 @@ impl KeyAgreementPublicKey {
     pub fn pem_representation(&self) -> Result<String> {
         utf8_key_representation(
             "key-agreement public-key PEM representation",
-            key_agreement_public_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Pem)?,
+            key_agreement_public_key_representation(
+                self.algorithm,
+                &self.raw,
+                KeyRepresentationFormat::Pem,
+            )?,
         )
     }
 }

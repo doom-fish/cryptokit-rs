@@ -197,8 +197,8 @@ impl HashStateHandle {
     pub(crate) fn new(algorithm: i32) -> Result<Self> {
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe { ffi::ck_hash_hasher_create(algorithm, &mut error) };
-        let handle = NonNull::new(handle)
-            .ok_or_else(|| from_swift(ffi::status::HASHING_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::HASHING_FAILED, error))?;
         Ok(Self {
             handle: Some(handle),
         })

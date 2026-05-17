@@ -155,7 +155,11 @@ macro_rules! kem_key_type {
             /// Returns an error if the Swift bridge rejects the request.
             pub fn encapsulate(&self) -> Result<EncapsulationResult> {
                 let (shared_secret, encapsulated) = bridge_two_buffers(
-                    |shared_secret_out, shared_secret_out_len, encapsulated_out, encapsulated_out_len, error_out| unsafe {
+                    |shared_secret_out,
+                     shared_secret_out_len,
+                     encapsulated_out,
+                     encapsulated_out_len,
+                     error_out| unsafe {
                         ffi::ck_kem_public_key_encapsulate(
                             $algorithm.as_ffi(),
                             self.raw.as_ptr(),

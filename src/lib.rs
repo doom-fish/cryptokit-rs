@@ -19,9 +19,9 @@ pub mod hkdf;
 pub mod hmac;
 pub mod hpke;
 pub mod insecure;
+pub mod kem;
 pub mod key_agreement;
 pub mod key_derivation;
-pub mod kem;
 pub mod key_wrap;
 pub mod mldsa;
 pub mod nist;
@@ -43,18 +43,18 @@ pub use hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
 pub use hmac::{hmac, hmac_sha256, hmac_sha384, hmac_sha512, HmacAlgorithm};
 pub use hpke::{
     Dhkem, HpkeAead, HpkeCiphersuite, HpkeDiffieHellmanPrivateKey,
-    HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeError, HpkeKem,
-    HpkeKemPrivateKey, HpkeKemPrivateKeyGeneration, HpkeKemPublicKey, HpkeKdf,
-    HpkePublicKeySerialization, Recipient as HpkeRecipient, Sender as HpkeSender,
+    HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeError, HpkeKdf, HpkeKem,
+    HpkeKemPrivateKey, HpkeKemPrivateKeyGeneration, HpkeKemPublicKey, HpkePublicKeySerialization,
+    Recipient as HpkeRecipient, Sender as HpkeSender,
 };
 pub use insecure::{md5, sha1, InsecureHashAlgorithm};
+pub use kem::{EncapsulationResult, KemError, KemPrivateKey, KemPublicKey};
 pub use key_agreement::{
     supported_algorithms as supported_key_agreement_algorithms, DiffieHellmanKeyAgreement,
 };
 pub use key_derivation::{
     derive as derive_shared_secret, derive_hkdf, derive_x963, KeyDerivationAlgorithm,
 };
-pub use kem::{EncapsulationResult, KemError, KemPrivateKey, KemPublicKey};
 pub use key_wrap::AesKeyWrap;
 pub use nist::{supported_curves as supported_nist_curves, NistCurve};
 pub use public_key::{
@@ -82,14 +82,14 @@ pub mod prelude {
     pub use crate::hmac::{hmac, hmac_sha256, hmac_sha384, hmac_sha512, HmacAlgorithm};
     pub use crate::hpke::{
         Dhkem, HpkeAead, HpkeCiphersuite, HpkeDiffieHellmanPrivateKey,
-        HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeKem,
-        HpkeKemPrivateKey, HpkeKemPrivateKeyGeneration, HpkeKemPublicKey, HpkeKdf,
+        HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeKdf, HpkeKem,
+        HpkeKemPrivateKey, HpkeKemPrivateKeyGeneration, HpkeKemPublicKey,
         HpkePublicKeySerialization, Recipient as HpkeRecipient, Sender as HpkeSender,
     };
     pub use crate::insecure::{md5, sha1, InsecureHashAlgorithm};
-    pub use crate::key_derivation::{derive_hkdf, derive_x963, KeyDerivationAlgorithm};
     pub use crate::kem::{EncapsulationResult, KemPrivateKey, KemPublicKey};
     pub use crate::key_agreement::DiffieHellmanKeyAgreement;
+    pub use crate::key_derivation::{derive_hkdf, derive_x963, KeyDerivationAlgorithm};
     pub use crate::key_wrap::AesKeyWrap;
     pub use crate::nist::NistCurve;
     pub use crate::public_key::{
@@ -102,8 +102,8 @@ pub mod prelude {
     };
     pub use crate::sha::{digest as sha_digest, sha256, sha384, sha512, ShaAlgorithm};
     pub use crate::sha3::{
-        hash as sha3_hash, sha3_256, sha3_384, sha3_512, Sha3Algorithm, Sha3_256,
-        Sha3_256Digest, Sha3_384, Sha3_384Digest, Sha3_512, Sha3_512Digest,
+        hash as sha3_hash, sha3_256, sha3_384, sha3_512, Sha3Algorithm, Sha3_256, Sha3_256Digest,
+        Sha3_384, Sha3_384Digest, Sha3_512, Sha3_512Digest,
     };
     pub use crate::symmetric::{AesGcm, ChaCha20Poly1305, SymmetricKey, SymmetricKeySize};
 }

@@ -2,10 +2,10 @@
 
 use crate::ffi;
 
+use crate::error::Result;
 pub use crate::public_key::{
     KeyAgreementAlgorithm, KeyAgreementPrivateKey, KeyAgreementPublicKey, SharedSecret,
 };
-use crate::error::Result;
 
 /// Trait mirroring `CryptoKit.DiffieHellmanKeyAgreement`.
 pub trait DiffieHellmanKeyAgreement {

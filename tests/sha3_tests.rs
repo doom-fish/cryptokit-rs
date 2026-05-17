@@ -26,16 +26,25 @@ fn sha3_streaming_matches_one_shot() -> Result<()> {
     let mut sha3_256_state = Sha3_256::new()?;
     sha3_256_state.update(b"a")?;
     sha3_256_state.update(b"bc")?;
-    assert_eq!(sha3_256_state.finalize()?.as_bytes(), sha3_256(b"abc")?.as_bytes());
+    assert_eq!(
+        sha3_256_state.finalize()?.as_bytes(),
+        sha3_256(b"abc")?.as_bytes()
+    );
 
     let mut sha3_384_state = Sha3_384::new()?;
     sha3_384_state.update(b"ab")?;
     sha3_384_state.update(b"c")?;
-    assert_eq!(sha3_384_state.finalize()?.as_bytes(), sha3_384(b"abc")?.as_bytes());
+    assert_eq!(
+        sha3_384_state.finalize()?.as_bytes(),
+        sha3_384(b"abc")?.as_bytes()
+    );
 
     let mut sha3_512_state = Sha3_512::new()?;
     sha3_512_state.update(b"abc")?;
-    assert_eq!(sha3_512_state.finalize()?.as_bytes(), sha3_512(b"abc")?.as_bytes());
+    assert_eq!(
+        sha3_512_state.finalize()?.as_bytes(),
+        sha3_512(b"abc")?.as_bytes()
+    );
 
     Ok(())
 }

@@ -311,7 +311,6 @@ impl P384KeyAgreementPublicKey {
     }
 }
 
-
 impl P384SigningPrivateKey {
     /// Generate a new private signing key with explicit compact-representation support.
     ///
@@ -319,10 +318,12 @@ impl P384SigningPrivateKey {
     ///
     /// Returns an error if key creation fails.
     pub fn generate_with_compact_representable(compact_representable: bool) -> Result<Self> {
-        Ok(Self(SigningPrivateKey::generate_with_compact_representable(
-            SigningAlgorithm::P384,
-            compact_representable,
-        )?))
+        Ok(Self(
+            SigningPrivateKey::generate_with_compact_representable(
+                SigningAlgorithm::P384,
+                compact_representable,
+            )?,
+        ))
     }
 
     /// Validate and wrap an ANSI X9.63 private-key representation.
@@ -503,10 +504,12 @@ impl P384KeyAgreementPrivateKey {
     ///
     /// Returns an error if key creation fails.
     pub fn generate_with_compact_representable(compact_representable: bool) -> Result<Self> {
-        Ok(Self(KeyAgreementPrivateKey::generate_with_compact_representable(
-            KeyAgreementAlgorithm::P384,
-            compact_representable,
-        )?))
+        Ok(Self(
+            KeyAgreementPrivateKey::generate_with_compact_representable(
+                KeyAgreementAlgorithm::P384,
+                compact_representable,
+            )?,
+        ))
     }
 
     /// Validate and wrap an ANSI X9.63 private-key representation.

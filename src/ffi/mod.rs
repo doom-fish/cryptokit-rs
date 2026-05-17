@@ -672,10 +672,7 @@ extern "C" {
         out_len: *mut usize,
         error_out: *mut *mut c_char,
     ) -> i32;
-    pub fn ck_sha3_hasher_create(
-        algorithm: i32,
-        error_out: *mut *mut c_char,
-    ) -> *mut c_void;
+    pub fn ck_sha3_hasher_create(algorithm: i32, error_out: *mut *mut c_char) -> *mut c_void;
     pub fn ck_sha3_hasher_update(
         handle: *mut c_void,
         input_bytes: *const u8,

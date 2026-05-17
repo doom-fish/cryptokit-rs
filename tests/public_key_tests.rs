@@ -40,7 +40,8 @@ fn assert_signing_representations_round_trip(algorithm: SigningAlgorithm) -> Res
         public.raw_representation()
     );
     assert_eq!(
-        SigningPublicKey::from_compact_representation(algorithm, compact_public)?.raw_representation(),
+        SigningPublicKey::from_compact_representation(algorithm, compact_public)?
+            .raw_representation(),
         public.raw_representation()
     );
     assert_eq!(
@@ -78,24 +79,29 @@ fn assert_key_agreement_representations_round_trip(algorithm: KeyAgreementAlgori
     assert!(pem_public.contains("PUBLIC KEY"));
 
     assert_eq!(
-        KeyAgreementPrivateKey::from_x963_representation(algorithm, x963_private)?.raw_representation(),
+        KeyAgreementPrivateKey::from_x963_representation(algorithm, x963_private)?
+            .raw_representation(),
         private.raw_representation()
     );
     assert_eq!(
-        KeyAgreementPrivateKey::from_der_representation(algorithm, der_private)?.raw_representation(),
+        KeyAgreementPrivateKey::from_der_representation(algorithm, der_private)?
+            .raw_representation(),
         private.raw_representation()
     );
     assert_eq!(
-        KeyAgreementPrivateKey::from_pem_representation(algorithm, pem_private)?.raw_representation(),
+        KeyAgreementPrivateKey::from_pem_representation(algorithm, pem_private)?
+            .raw_representation(),
         private.raw_representation()
     );
 
     assert_eq!(
-        KeyAgreementPublicKey::from_x963_representation(algorithm, x963_public)?.raw_representation(),
+        KeyAgreementPublicKey::from_x963_representation(algorithm, x963_public)?
+            .raw_representation(),
         public.raw_representation()
     );
     assert_eq!(
-        KeyAgreementPublicKey::from_compact_representation(algorithm, compact_public)?.raw_representation(),
+        KeyAgreementPublicKey::from_compact_representation(algorithm, compact_public)?
+            .raw_representation(),
         public.raw_representation()
     );
     assert_eq!(

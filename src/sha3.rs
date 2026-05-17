@@ -133,7 +133,8 @@ impl Sha3StateHandle {
     fn new(algorithm: Sha3Algorithm) -> Result<Self> {
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe { ffi::ck_sha3_hasher_create(algorithm.as_ffi(), &mut error) };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::HASHING_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::HASHING_FAILED, error))?;
         Ok(Self {
             handle: Some(handle),
         })

@@ -40,7 +40,8 @@ fn p256_signing_and_key_agreement_round_trip() -> Result<()> {
     let bob_secret = bob.shared_secret(&alice.public_key()?)?;
     assert_eq!(alice_secret.as_bytes(), bob_secret.as_bytes());
 
-    let representable_agreement = P256KeyAgreementPrivateKey::generate_with_compact_representable(true)?;
+    let representable_agreement =
+        P256KeyAgreementPrivateKey::generate_with_compact_representable(true)?;
     let representable_agreement_public = representable_agreement.public_key()?;
     let x963 = representable_agreement_public.x963_representation()?;
     assert_eq!(

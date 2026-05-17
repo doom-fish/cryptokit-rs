@@ -1,5 +1,5 @@
-use cryptokit::hmac::{hmac_sha256_code, HmacSha256};
 use cryptokit::hkdf::{hkdf_expand_sha256, hkdf_extract_sha256};
+use cryptokit::hmac::{hmac_sha256_code, HmacSha256};
 use cryptokit::sha::{sha256_digest, SHA2_256};
 use cryptokit::{Result, SymmetricKey};
 

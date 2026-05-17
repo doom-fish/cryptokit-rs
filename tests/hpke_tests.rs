@@ -9,8 +9,12 @@ fn hpke_round_trips_for_diffie_hellman_and_kem_modes() -> Result<()> {
     let recipient = X25519PrivateKey::generate()?;
     let recipient_public = recipient.public_key()?;
     let serialized = recipient_public.hpke_representation(HpkeKem::Curve25519HkdfSha256)?;
-    let parsed = X25519PublicKey::from_hpke_serialization(&serialized, HpkeKem::Curve25519HkdfSha256)?;
-    assert_eq!(parsed.raw_representation(), recipient_public.raw_representation());
+    let parsed =
+        X25519PublicKey::from_hpke_serialization(&serialized, HpkeKem::Curve25519HkdfSha256)?;
+    assert_eq!(
+        parsed.raw_representation(),
+        recipient_public.raw_representation()
+    );
 
     let mut sender = HpkeSender::new(
         &recipient_public,
@@ -27,8 +31,14 @@ fn hpke_round_trips_for_diffie_hellman_and_kem_modes() -> Result<()> {
         b"x25519 info",
         &encapsulated,
     )?;
-    assert_eq!(recipient_context.open_with_aad(&ciphertext, b"aad")?, b"x25519 hpke");
-    assert_eq!(recipient_context.export_secret(b"context", 32)?.as_bytes(), exported.as_bytes());
+    assert_eq!(
+        recipient_context.open_with_aad(&ciphertext, b"aad")?,
+        b"x25519 hpke"
+    );
+    assert_eq!(
+        recipient_context.export_secret(b"context", 32)?.as_bytes(),
+        exported.as_bytes()
+    );
 
     let authenticated_recipient = P256KeyAgreementPrivateKey::generate()?;
     let authenticated_recipient_public = authenticated_recipient.public_key()?;
@@ -55,7 +65,10 @@ fn hpke_round_trips_for_diffie_hellman_and_kem_modes() -> Result<()> {
         &psk,
         b"psk-id",
     )?;
-    assert_eq!(authenticated_recipient_context.open(&authenticated_ciphertext)?, b"p256 hpke");
+    assert_eq!(
+        authenticated_recipient_context.open(&authenticated_ciphertext)?,
+        b"p256 hpke"
+    );
 
     let kem_recipient = XWingMlkem768X25519PrivateKey::generate()?;
     let kem_public = kem_recipient.public_key()?;
@@ -64,7 +77,10 @@ fn hpke_round_trips_for_diffie_hellman_and_kem_modes() -> Result<()> {
         &kem_serialized,
         HpkeKem::XWingMlkem768X25519,
     )?;
-    assert_eq!(kem_parsed.raw_representation(), kem_public.raw_representation());
+    assert_eq!(
+        kem_parsed.raw_representation(),
+        kem_public.raw_representation()
+    );
 
     let mut kem_sender = HpkeSender::new_with_kem(
         &kem_public,
@@ -81,8 +97,16 @@ fn hpke_round_trips_for_diffie_hellman_and_kem_modes() -> Result<()> {
         b"xwing info",
         &kem_encapsulated,
     )?;
-    assert_eq!(kem_recipient_context.open_with_aad(&kem_ciphertext, b"aad")?, b"xwing hpke");
-    assert_eq!(kem_recipient_context.export_secret(b"context", 32)?.as_bytes(), kem_exported.as_bytes());
+    assert_eq!(
+        kem_recipient_context.open_with_aad(&kem_ciphertext, b"aad")?,
+        b"xwing hpke"
+    );
+    assert_eq!(
+        kem_recipient_context
+            .export_secret(b"context", 32)?
+            .as_bytes(),
+        kem_exported.as_bytes()
+    );
 
     Ok(())
 }

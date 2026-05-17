@@ -23,7 +23,12 @@ fn typed_nonce_and_sealed_box_parts_round_trip() -> Result<()> {
     let sealed = AesGcm::seal_with_nonce_and_aad(b"typed nonce", &key, &nonce, b"aad")?;
 
     assert_eq!(sealed.nonce_value()?, nonce);
-    assert_eq!(cryptokit::aes_gcm::AesGcmNonce::generate()?.as_bytes().len(), 12);
+    assert_eq!(
+        cryptokit::aes_gcm::AesGcmNonce::generate()?
+            .as_bytes()
+            .len(),
+        12
+    );
 
     let rebuilt = AesGcmSealedBox::from_parts(&nonce, sealed.ciphertext(), sealed.tag())?;
     assert_eq!(rebuilt.combined(), sealed.combined());

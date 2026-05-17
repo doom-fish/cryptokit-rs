@@ -8,7 +8,11 @@ fn main() -> Result<()> {
     let wrapped = AesKeyWrap::wrap(&key_to_wrap, &kek)?;
     let unwrapped = AesKeyWrap::unwrap(&wrapped, &kek)?;
 
-    println!("Wrapped {} bytes into {} bytes", key_to_wrap.as_bytes().len(), wrapped.len());
+    println!(
+        "Wrapped {} bytes into {} bytes",
+        key_to_wrap.as_bytes().len(),
+        wrapped.len()
+    );
     println!("Unwrapped key matches: {}", unwrapped == key_to_wrap);
     Ok(())
 }

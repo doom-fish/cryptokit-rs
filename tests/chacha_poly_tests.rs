@@ -23,7 +23,12 @@ fn typed_nonce_and_sealed_box_parts_round_trip() -> Result<()> {
     let sealed = ChaChaPoly::seal_with_nonce_and_aad(b"typed nonce", &key, &nonce, b"aad")?;
 
     assert_eq!(sealed.nonce_value()?, nonce);
-    assert_eq!(cryptokit::chacha_poly::ChaChaPolyNonce::generate()?.as_bytes().len(), 12);
+    assert_eq!(
+        cryptokit::chacha_poly::ChaChaPolyNonce::generate()?
+            .as_bytes()
+            .len(),
+        12
+    );
 
     let rebuilt = ChaChaPolySealedBox::from_parts(&nonce, sealed.ciphertext(), sealed.tag())?;
     assert_eq!(rebuilt.combined(), sealed.combined());

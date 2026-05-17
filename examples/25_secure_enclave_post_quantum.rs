@@ -1,4 +1,6 @@
-use cryptokit::secure_enclave::{self, SecureEnclaveMldsa65PrivateKey, SecureEnclaveMlkem768PrivateKey};
+use cryptokit::secure_enclave::{
+    self, SecureEnclaveMldsa65PrivateKey, SecureEnclaveMlkem768PrivateKey,
+};
 use cryptokit::Result;
 
 fn main() -> Result<()> {

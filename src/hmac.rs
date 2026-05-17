@@ -10,11 +10,13 @@ use std::ptr::NonNull;
 use crate::error::{from_swift, Result};
 use crate::ffi;
 use crate::private::{bridge_bytes, bridge_flag, bridge_status, hex, validate_byte_count};
-use crate::sha::{HashFunction, Sha384, Sha256, Sha512};
+use crate::sha::{HashFunction, Sha256, Sha384, Sha512};
 use crate::symmetric::SymmetricKey;
 
 /// Typed message-authentication-code values produced by `CryptoKit`.
-pub trait MessageAuthenticationCode: AsRef<[u8]> + Clone + Eq + core::hash::Hash + fmt::Display {
+pub trait MessageAuthenticationCode:
+    AsRef<[u8]> + Clone + Eq + core::hash::Hash + fmt::Display
+{
     /// Number of bytes in this MAC.
     fn byte_count(&self) -> usize;
 
@@ -172,7 +174,8 @@ impl HmacStateHandle {
                 &mut error,
             )
         };
-        let handle = NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::HMAC_FAILED, error))?;
+        let handle =
+            NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::HMAC_FAILED, error))?;
         Ok(Self {
             handle: Some(handle),
         })
