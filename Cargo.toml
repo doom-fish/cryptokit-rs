@@ -1,6 +1,6 @@
 [package]
 name = "cryptokit-rs"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/cryptokit-rs"
@@ -9,7 +9,7 @@ description = "Safe Rust bindings for Apple's CryptoKit framework — hashing, A
 authors = ["Per Johansson <per@doom.fish>"]
 keywords = ["cryptokit", "crypto", "macos", "aes-gcm", "apple"]
 categories = ["api-bindings", "os::macos-apis", "cryptography"]
-rust-version = "1.70"
+rust-version = "1.76"
 readme = "README.md"
 build = "build.rs"
 include = [
