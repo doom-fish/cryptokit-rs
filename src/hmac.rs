@@ -199,7 +199,7 @@ impl HmacStateHandle {
                 algorithm.as_ffi(),
                 key.as_bytes().as_ptr(),
                 key.as_bytes().len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =

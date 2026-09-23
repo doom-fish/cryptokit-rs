@@ -45,7 +45,7 @@ where
 {
     let mut error = ptr::null_mut();
 
-    let status = call(&mut error);
+    let status = call(&raw mut error);
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
     }
@@ -61,7 +61,7 @@ where
     let mut out_len = 0_usize;
     let mut error = ptr::null_mut();
 
-    let status = call(&mut out, &mut out_len, &mut error);
+    let status = call(&raw mut out, &raw mut out_len, &raw mut error);
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
     }
@@ -77,7 +77,7 @@ where
     let mut out_len = 0_usize;
     let mut error = ptr::null_mut();
 
-    let status = call(&mut out, &mut out_len, &mut error);
+    let status = call(&raw mut out, &raw mut out_len, &raw mut error);
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
     }
@@ -100,11 +100,11 @@ where
     let mut error = ptr::null_mut();
 
     let status = call(
-        &mut first,
-        &mut first_len,
-        &mut second,
-        &mut second_len,
-        &mut error,
+        &raw mut first,
+        &raw mut first_len,
+        &raw mut second,
+        &raw mut second_len,
+        &raw mut error,
     );
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
@@ -123,7 +123,7 @@ where
     let mut handle = ptr::null_mut();
     let mut error = ptr::null_mut();
 
-    let status = call(&mut handle, &mut error);
+    let status = call(&raw mut handle, &raw mut error);
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
     }
@@ -143,7 +143,7 @@ where
     let mut out = 0_u8;
     let mut error = ptr::null_mut();
 
-    let status = call(&mut out, &mut error);
+    let status = call(&raw mut out, &raw mut error);
     if status != ffi::status::OK {
         return Err(from_swift(status, error));
     }

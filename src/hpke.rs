@@ -313,7 +313,7 @@ impl Sender {
                 0,
                 ptr::null(),
                 0,
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -357,7 +357,7 @@ impl Sender {
                 preshared_key.as_bytes().len(),
                 preshared_key_identifier.as_ptr(),
                 preshared_key_identifier.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -402,7 +402,7 @@ impl Sender {
                 0,
                 ptr::null(),
                 0,
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -449,7 +449,7 @@ impl Sender {
                 preshared_key.as_bytes().len(),
                 preshared_key_identifier.as_ptr(),
                 preshared_key_identifier.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -484,7 +484,7 @@ impl Sender {
                 ciphersuite.aead.as_ffi(),
                 info.as_ptr(),
                 info.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -607,7 +607,7 @@ impl Recipient {
                 0,
                 ptr::null(),
                 0,
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -656,7 +656,7 @@ impl Recipient {
                 preshared_key.as_bytes().len(),
                 preshared_key_identifier.as_ptr(),
                 preshared_key_identifier.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -704,7 +704,7 @@ impl Recipient {
                 0,
                 ptr::null(),
                 0,
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -754,7 +754,7 @@ impl Recipient {
                 preshared_key.as_bytes().len(),
                 preshared_key_identifier.as_ptr(),
                 preshared_key_identifier.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =
@@ -794,7 +794,7 @@ impl Recipient {
                 info.len(),
                 encapsulated_key.as_ptr(),
                 encapsulated_key.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         let handle =

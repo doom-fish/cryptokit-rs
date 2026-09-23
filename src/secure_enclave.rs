@@ -31,7 +31,7 @@ where
     F: FnOnce(*mut *mut c_char) -> *mut c_void,
 {
     let mut error: *mut c_char = ptr::null_mut();
-    let handle = call(&mut error);
+    let handle = call(&raw mut error);
     NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))
 }
 
@@ -887,7 +887,7 @@ mod tests {
                 accessibility,
                 flags.bits(),
                 ptr::null_mut(),
-                &mut error,
+                &raw mut error,
             )
         };
         assert!(handle.is_null());
