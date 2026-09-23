@@ -4,6 +4,7 @@ import Foundation
 @available(macOS 14.0, *)
 private final class CKHPKESenderHolder {
     var sender: HPKE.Sender
+    var exportLimit = 0
 
     init(_ sender: HPKE.Sender) {
         self.sender = sender
@@ -13,10 +14,32 @@ private final class CKHPKESenderHolder {
 @available(macOS 14.0, *)
 private final class CKHPKERecipientHolder {
     var recipient: HPKE.Recipient
+    var exportLimit = 0
 
     init(_ recipient: HPKE.Recipient) {
         self.recipient = recipient
     }
+}
+
+private func ckHpkeExportLimit(_ kdf: Int32) throws -> Int {
+    switch kdf {
+    case CK_HPKE_KDF_SHA256:
+        return 255 * 32
+    case CK_HPKE_KDF_SHA384:
+        return 255 * 48
+    case CK_HPKE_KDF_SHA512:
+        return 255 * 64
+    default:
+        throw CKBridgeError.invalidArgument("unsupported HPKE KDF: \(kdf)")
+    }
+}
+
+private func ckHpkeExportByteCount(_ outputLen: UInt, limit: Int) throws -> Int {
+    let outputByteCount = try ckByteCount(outputLen)
+    guard outputByteCount > 0, outputByteCount <= limit else {
+        throw CKBridgeError.invalidArgument("HPKE export length must be between 1 and \(limit) bytes")
+    }
+    return outputByteCount
 }
 
 @available(macOS 14.0, *)
@@ -706,6 +729,7 @@ public func ck_hpke_sender_create_dh(
             psk: psk,
             pskID: pskID
         )
+        holder.exportLimit = try ckHpkeExportLimit(kdf)
         return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
@@ -743,6 +767,7 @@ public func ck_hpke_sender_create_kem(
             ciphersuite: ckHpkeCiphersuite(kem: kem, kdf: kdf, aead: aead),
             info: info
         )
+        holder.exportLimit = try ckHpkeExportLimit(kdf)
         return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
@@ -845,7 +870,8 @@ public func ck_hpke_sender_export_secret(
         }
         let context = try ckData(contextBytes, contextLen)
         let holder = Unmanaged<CKHPKESenderHolder>.fromOpaque(handle).takeUnretainedValue()
-        let exported = try holder.sender.exportSecret(context: context, outputByteCount: Int(outputLen))
+        let outputByteCount = try ckHpkeExportByteCount(outputLen, limit: holder.exportLimit)
+        let exported = try holder.sender.exportSecret(context: context, outputByteCount: outputByteCount)
         return ckCopyData(ckHpkeExportedSecret(exported), outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
@@ -899,6 +925,7 @@ public func ck_hpke_recipient_create_dh(
             psk: psk,
             pskID: pskID
         )
+        holder.exportLimit = try ckHpkeExportLimit(kdf)
         return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
@@ -940,6 +967,7 @@ public func ck_hpke_recipient_create_kem(
             info: info,
             encapsulatedKey: encapsulatedKey
         )
+        holder.exportLimit = try ckHpkeExportLimit(kdf)
         return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
@@ -1017,7 +1045,8 @@ public func ck_hpke_recipient_export_secret(
         }
         let context = try ckData(contextBytes, contextLen)
         let holder = Unmanaged<CKHPKERecipientHolder>.fromOpaque(handle).takeUnretainedValue()
-        let exported = try holder.recipient.exportSecret(context: context, outputByteCount: Int(outputLen))
+        let outputByteCount = try ckHpkeExportByteCount(outputLen, limit: holder.exportLimit)
+        let exported = try holder.recipient.exportSecret(context: context, outputByteCount: outputByteCount)
         return ckCopyData(ckHpkeExportedSecret(exported), outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)

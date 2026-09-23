@@ -5,7 +5,7 @@ use std::ptr;
 use std::ptr::NonNull;
 
 use crate::curve25519::{X25519PrivateKey, X25519PublicKey};
-use crate::error::{from_swift, Result};
+use crate::error::{from_swift, CryptoKitError, Result};
 use crate::ffi;
 use crate::kem::{
     KemPrivateKey, KemPublicKey, XWingMlkem768X25519PrivateKey, XWingMlkem768X25519PublicKey,
@@ -34,6 +34,24 @@ impl HpkeKdf {
             Self::HkdfSha512 => ffi::hpke_kdf::HKDF_SHA512,
         }
     }
+
+    const fn max_export_byte_count(self) -> usize {
+        match self {
+            Self::HkdfSha256 => 255 * 32,
+            Self::HkdfSha384 => 255 * 48,
+            Self::HkdfSha512 => 255 * 64,
+        }
+    }
+}
+
+fn validate_export_byte_count(kdf: HpkeKdf, output_byte_count: usize) -> Result<()> {
+    let maximum = kdf.max_export_byte_count();
+    if output_byte_count == 0 || output_byte_count > maximum {
+        return Err(CryptoKitError::InvalidArgument(format!(
+            "HPKE export length must be between 1 and {maximum} bytes, got {output_byte_count}"
+        )));
+    }
+    Ok(())
 }
 
 /// HPKE AEAD algorithms.
@@ -264,6 +282,7 @@ where
 #[derive(Debug)]
 pub struct Sender {
     handle: NonNull<c_void>,
+    kdf: HpkeKdf,
 }
 
 impl Sender {
@@ -299,7 +318,10 @@ impl Sender {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create a sender with a pre-shared key for Diffie-Hellman recipient keys.
@@ -340,7 +362,10 @@ impl Sender {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create an authenticated sender for Diffie-Hellman recipient keys.
@@ -382,7 +407,10 @@ impl Sender {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create an authenticated sender with a pre-shared key for Diffie-Hellman recipient keys.
@@ -426,7 +454,10 @@ impl Sender {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create a sender for KEM recipient keys.
@@ -458,7 +489,10 @@ impl Sender {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Export the sender's encapsulated key.
@@ -507,6 +541,7 @@ impl Sender {
     ///
     /// Returns an error if the Swift bridge rejects the request.
     pub fn export_secret(&self, context: &[u8], output_byte_count: usize) -> Result<SymmetricKey> {
+        validate_export_byte_count(self.kdf, output_byte_count)?;
         let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_hpke_sender_export_secret(
                 self.handle.as_ptr(),
@@ -532,6 +567,7 @@ impl Drop for Sender {
 #[derive(Debug)]
 pub struct Recipient {
     handle: NonNull<c_void>,
+    kdf: HpkeKdf,
 }
 
 impl Recipient {
@@ -576,7 +612,10 @@ impl Recipient {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create a recipient with a pre-shared key for Diffie-Hellman private keys.
@@ -622,7 +661,10 @@ impl Recipient {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create an authenticated recipient for Diffie-Hellman private keys.
@@ -667,7 +709,10 @@ impl Recipient {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create an authenticated recipient with a pre-shared key for Diffie-Hellman private keys.
@@ -714,7 +759,10 @@ impl Recipient {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Create a recipient for HPKE KEM private keys.
@@ -751,7 +799,10 @@ impl Recipient {
         };
         let handle =
             NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))?;
-        Ok(Self { handle })
+        Ok(Self {
+            handle,
+            kdf: ciphersuite.kdf,
+        })
     }
 
     /// Open a ciphertext without additional authenticated data.
@@ -793,6 +844,7 @@ impl Recipient {
     ///
     /// Returns an error if the Swift bridge rejects the request.
     pub fn export_secret(&self, context: &[u8], output_byte_count: usize) -> Result<SymmetricKey> {
+        validate_export_byte_count(self.kdf, output_byte_count)?;
         let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_hpke_recipient_export_secret(
                 self.handle.as_ptr(),
@@ -1000,3 +1052,71 @@ impl_hpke_kem_key!(
     raw_representation,
     integrity_checked_representation
 );
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        bridge_bytes, ffi, CryptoKitError, HpkeCiphersuite, Recipient, Result, Sender,
+    };
+    use crate::curve25519::X25519PrivateKey;
+
+    #[test]
+    fn export_lengths_are_validated_before_and_inside_the_bridge() -> Result<()> {
+        let recipient_key = X25519PrivateKey::generate()?;
+        let sender = Sender::new(
+            &recipient_key.public_key()?,
+            HpkeCiphersuite::CURVE25519_SHA256_CHACHA_POLY,
+            b"info",
+        )?;
+        let recipient = Recipient::new(
+            &recipient_key,
+            HpkeCiphersuite::CURVE25519_SHA256_CHACHA_POLY,
+            b"info",
+            &sender.encapsulated_key()?,
+        )?;
+
+        for output_byte_count in [0, 255 * 32 + 1, usize::MAX] {
+            assert!(matches!(
+                sender.export_secret(b"context", output_byte_count),
+                Err(CryptoKitError::InvalidArgument(_))
+            ));
+            assert!(matches!(
+                recipient.export_secret(b"context", output_byte_count),
+                Err(CryptoKitError::InvalidArgument(_))
+            ));
+        }
+        assert_eq!(
+            sender.export_secret(b"context", 255 * 32)?,
+            recipient.export_secret(b"context", 255 * 32)?
+        );
+
+        for output_byte_count in [0, 255 * 32 + 1, usize::MAX] {
+            let raw_sender = bridge_bytes(|out, out_len, error_out| unsafe {
+                ffi::ck_hpke_sender_export_secret(
+                    sender.handle.as_ptr(),
+                    std::ptr::null(),
+                    0,
+                    output_byte_count,
+                    out,
+                    out_len,
+                    error_out,
+                )
+            });
+            assert!(matches!(raw_sender, Err(CryptoKitError::InvalidArgument(_))));
+
+            let raw_recipient = bridge_bytes(|out, out_len, error_out| unsafe {
+                ffi::ck_hpke_recipient_export_secret(
+                    recipient.handle.as_ptr(),
+                    std::ptr::null(),
+                    0,
+                    output_byte_count,
+                    out,
+                    out_len,
+                    error_out,
+                )
+            });
+            assert!(matches!(raw_recipient, Err(CryptoKitError::InvalidArgument(_))));
+        }
+        Ok(())
+    }
+}
