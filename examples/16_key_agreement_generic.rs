@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bob = KeyAgreementPrivateKey::generate(KeyAgreementAlgorithm::X25519)?;
     let alice_secret = alice.shared_secret(&bob.public_key()?)?;
     let bob_secret = bob.shared_secret(&alice.public_key()?)?;
-    assert_eq!(alice_secret.as_bytes(), bob_secret.as_bytes());
+    assert_eq!(alice_secret, bob_secret);
     println!("generic key-agreement algorithms: {}", algorithms.len());
     Ok(())
 }

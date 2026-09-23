@@ -80,6 +80,14 @@ impl ShaAlgorithm {
             Self::Sha512 => ffi::hash_algorithm::SHA512,
         }
     }
+
+    pub(crate) const fn digest_byte_count(self) -> usize {
+        match self {
+            Self::Sha256 => 32,
+            Self::Sha384 => 48,
+            Self::Sha512 => 64,
+        }
+    }
 }
 
 macro_rules! digest_type {

@@ -1,9 +1,18 @@
 //! Signing and key-agreement keys backed by raw `CryptoKit` representations.
 
+use core::ffi::c_void;
+use core::fmt;
+use std::ptr::NonNull;
+
+use zeroize::Zeroizing;
+
 use crate::error::{CryptoKitError, Result};
 use crate::ffi;
-use crate::hkdf::hkdf_sha256;
-use crate::private::{bridge_bytes, bridge_flag, bridge_optional_bytes, ensure_same_algorithm};
+use crate::hkdf::HkdfAlgorithm;
+use crate::key_derivation::derive_hkdf;
+use crate::private::{
+    bridge_bytes, bridge_flag, bridge_handle, bridge_optional_bytes, ensure_same_algorithm,
+};
 use crate::symmetric::SymmetricKey;
 
 /// Supported signing algorithms.
@@ -304,19 +313,18 @@ impl KeyAgreementPrivateKey {
     /// Returns an error if the algorithms do not match or the `CryptoKit` bridge rejects the request.
     pub fn shared_secret(&self, peer: &KeyAgreementPublicKey) -> Result<SharedSecret> {
         ensure_same_algorithm(self.algorithm, peer.algorithm, "key agreement")?;
-        let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
+        let handle = bridge_handle(|out_handle, error_out| unsafe {
             ffi::ck_key_agreement_shared_secret(
                 self.algorithm.as_ffi(),
                 self.raw.as_ptr(),
                 self.raw.len(),
                 peer.raw.as_ptr(),
                 peer.raw.len(),
-                out,
-                out_len,
+                out_handle,
                 error_out,
             )
         })?;
-        Ok(SharedSecret { bytes })
+        Ok(SharedSecret { handle })
     }
 }
 
@@ -1122,27 +1130,25 @@ impl KeyAgreementPublicKey {
 }
 
 /// Shared secret bytes returned by a key-agreement operation.
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SharedSecret {
-    bytes: Vec<u8>,
+    pub(crate) handle: NonNull<c_void>,
 }
 
+unsafe impl Send for SharedSecret {}
+
+unsafe impl Sync for SharedSecret {}
+
 impl SharedSecret {
-    #[allow(clippy::missing_const_for_fn)]
-    pub(crate) fn from_bytes(bytes: Vec<u8>) -> Self {
-        Self { bytes }
-    }
-
-    /// Borrow the raw shared-secret bytes.
+    /// Copy the raw key-agreement output into a zeroizing buffer.
     #[must_use]
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.bytes
-    }
-
-    /// Consume the shared secret and return its raw bytes.
-    #[must_use]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.bytes
+    pub fn hazmat_raw_bytes(&self) -> Zeroizing<Vec<u8>> {
+        let count = unsafe { ffi::ck_shared_secret_byte_count(self.handle.as_ptr()) };
+        let mut bytes = Zeroizing::new(vec![0_u8; count]);
+        let copied = unsafe {
+            ffi::ck_shared_secret_copy_bytes(self.handle.as_ptr(), bytes.as_mut_ptr(), bytes.len())
+        };
+        bytes.truncate(copied);
+        bytes
     }
 
     /// Derive a symmetric key from this shared secret with HKDF-SHA256.
@@ -1151,21 +1157,7 @@ impl SharedSecret {
     ///
     /// Returns an error if the `CryptoKit` bridge rejects the request.
     pub fn hkdf_sha256(&self, salt: &[u8], info: &[u8], output_len: usize) -> Result<SymmetricKey> {
-        let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_shared_secret_hkdf_sha256(
-                self.bytes.as_ptr(),
-                self.bytes.len(),
-                salt.as_ptr(),
-                salt.len(),
-                info.as_ptr(),
-                info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            )
-        })?;
-        Ok(SymmetricKey::from_bytes(bytes))
+        derive_hkdf(self, HkdfAlgorithm::Sha256, salt, info, output_len)
     }
 
     /// Treat this shared secret as generic input key material for HKDF-SHA256.
@@ -1179,12 +1171,36 @@ impl SharedSecret {
         info: &[u8],
         output_len: usize,
     ) -> Result<SymmetricKey> {
-        hkdf_sha256(
-            &SymmetricKey::from_bytes(self.bytes.clone()),
-            salt,
-            info,
-            output_len,
-        )
+        derive_hkdf(self, HkdfAlgorithm::Sha256, salt, info, output_len)
+    }
+}
+
+impl Clone for SharedSecret {
+    fn clone(&self) -> Self {
+        unsafe { ffi::ck_shared_secret_retain(self.handle.as_ptr()) };
+        Self {
+            handle: self.handle,
+        }
+    }
+}
+
+impl Drop for SharedSecret {
+    fn drop(&mut self) {
+        unsafe { ffi::ck_shared_secret_release(self.handle.as_ptr()) };
+    }
+}
+
+impl PartialEq for SharedSecret {
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { ffi::ck_shared_secret_equal(self.handle.as_ptr(), other.handle.as_ptr()) != 0 }
+    }
+}
+
+impl Eq for SharedSecret {}
+
+impl fmt::Debug for SharedSecret {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SharedSecret").finish_non_exhaustive()
     }
 }
 
@@ -1212,7 +1228,8 @@ mod tests {
 
         let alice_secret = alice.shared_secret(&bob.public_key()?)?;
         let bob_secret = bob.shared_secret(&alice.public_key()?)?;
-        assert_eq!(alice_secret.as_bytes(), bob_secret.as_bytes());
+        assert_eq!(alice_secret, bob_secret);
+        assert_eq!(alice_secret.hazmat_raw_bytes().len(), 32);
 
         let derived = alice_secret.hkdf_sha256(b"salt", b"info", 32)?;
         assert_eq!(derived.as_bytes().len(), 32);

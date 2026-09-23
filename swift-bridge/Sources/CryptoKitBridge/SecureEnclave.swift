@@ -428,8 +428,7 @@ public func ck_secure_enclave_key_agreement_private_key_shared_secret(
     _ handle: UnsafeMutableRawPointer?,
     _ publicKeyBytes: UnsafePointer<UInt8>?,
     _ publicKeyLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ outHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     do {
@@ -439,7 +438,7 @@ public func ck_secure_enclave_key_agreement_private_key_shared_secret(
         let peerPublicKey = try P256.KeyAgreement.PublicKey(rawRepresentation: ckData(publicKeyBytes, publicKeyLen))
         let holder = Unmanaged<CKSecureEnclaveKeyAgreementPrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
         let sharedSecret = try holder.key.sharedSecretFromKeyAgreement(with: peerPublicKey)
-        return ckCopyData(sharedSecret.withUnsafeBytes(ckOwnedData), outBytes, outLen, errorOut)
+        return ckStoreSharedSecret(sharedSecret, outHandle, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {

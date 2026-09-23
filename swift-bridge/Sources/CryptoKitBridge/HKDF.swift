@@ -179,7 +179,7 @@ private func ckHkdfExport(
                 inputKeyMaterial: inputKeyMaterial,
                 salt: salt,
                 info: info,
-                outputLen: Int(outputLen)
+                outputLen: try ckByteCount(outputLen)
             ),
             outBytes,
             outLen,
@@ -247,7 +247,7 @@ public func ck_hkdf_expand(
                 algorithm,
                 pseudoRandomKey: pseudoRandomKey,
                 info: info,
-                outputLen: Int(outputLen)
+                outputLen: try ckByteCount(outputLen)
             ),
             outBytes,
             outLen,

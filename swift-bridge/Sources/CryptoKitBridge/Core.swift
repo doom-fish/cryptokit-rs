@@ -127,6 +127,14 @@ func ckFail(
 }
 
 @inline(__always)
+func ckByteCount(_ value: UInt) throws -> Int {
+    guard let count = Int(exactly: value) else {
+        throw CKBridgeError.invalidArgument("byte count \(value) is too large")
+    }
+    return count
+}
+
+@inline(__always)
 func ckData(_ bytes: UnsafePointer<UInt8>?, _ count: UInt) throws -> Data {
     guard count == 0 || bytes != nil else {
         throw CKBridgeError.invalidArgument("missing byte buffer")
@@ -134,7 +142,7 @@ func ckData(_ bytes: UnsafePointer<UInt8>?, _ count: UInt) throws -> Data {
     guard count > 0, let bytes else {
         return Data()
     }
-    return Data(bytes: bytes, count: Int(count))
+    return Data(bytes: bytes, count: try ckByteCount(count))
 }
 
 @inline(__always)

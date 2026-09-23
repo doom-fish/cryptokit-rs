@@ -476,13 +476,21 @@ extern "C" {
         private_key_len: usize,
         public_key_bytes: *const u8,
         public_key_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
+        out_handle: *mut *mut c_void,
         error_out: *mut *mut c_char,
     ) -> i32;
-    pub fn ck_shared_secret_hkdf_sha256(
-        secret_bytes: *const u8,
-        secret_len: usize,
+    pub fn ck_shared_secret_release(handle: *mut c_void);
+    pub fn ck_shared_secret_retain(handle: *mut c_void);
+    pub fn ck_shared_secret_byte_count(handle: *mut c_void) -> usize;
+    pub fn ck_shared_secret_copy_bytes(
+        handle: *mut c_void,
+        out_bytes: *mut u8,
+        capacity: usize,
+    ) -> usize;
+    pub fn ck_shared_secret_equal(lhs: *mut c_void, rhs: *mut c_void) -> u8;
+    pub fn ck_shared_secret_hkdf(
+        handle: *mut c_void,
+        algorithm: i32,
         salt_bytes: *const u8,
         salt_len: usize,
         info_bytes: *const u8,
@@ -492,53 +500,9 @@ extern "C" {
         out_len: *mut usize,
         error_out: *mut *mut c_char,
     ) -> i32;
-    pub fn ck_shared_secret_hkdf_sha384(
-        secret_bytes: *const u8,
-        secret_len: usize,
-        salt_bytes: *const u8,
-        salt_len: usize,
-        info_bytes: *const u8,
-        info_len: usize,
-        output_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_shared_secret_hkdf_sha512(
-        secret_bytes: *const u8,
-        secret_len: usize,
-        salt_bytes: *const u8,
-        salt_len: usize,
-        info_bytes: *const u8,
-        info_len: usize,
-        output_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_shared_secret_x963_sha256(
-        secret_bytes: *const u8,
-        secret_len: usize,
-        shared_info_bytes: *const u8,
-        shared_info_len: usize,
-        output_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_shared_secret_x963_sha384(
-        secret_bytes: *const u8,
-        secret_len: usize,
-        shared_info_bytes: *const u8,
-        shared_info_len: usize,
-        output_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_shared_secret_x963_sha512(
-        secret_bytes: *const u8,
-        secret_len: usize,
+    pub fn ck_shared_secret_x963(
+        handle: *mut c_void,
+        algorithm: i32,
         shared_info_bytes: *const u8,
         shared_info_len: usize,
         output_len: usize,
@@ -1116,8 +1080,7 @@ extern "C" {
         handle: *mut c_void,
         public_key_bytes: *const u8,
         public_key_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
+        out_handle: *mut *mut c_void,
         error_out: *mut *mut c_char,
     ) -> i32;
 

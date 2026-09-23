@@ -1,8 +1,9 @@
-use core::ffi::c_char;
+use core::ffi::{c_char, c_void};
 use std::fmt::Write as _;
 use std::ptr;
+use std::ptr::NonNull;
 
-use crate::error::{from_swift, take_owned_buffer, CryptoKitError, Result};
+use crate::error::{from_status_message, from_swift, take_owned_buffer, CryptoKitError, Result};
 use crate::ffi;
 
 #[must_use]
@@ -100,6 +101,26 @@ where
         take_owned_buffer(first, first_len),
         take_owned_buffer(second, second_len),
     ))
+}
+
+pub fn bridge_handle<F>(call: F) -> Result<NonNull<c_void>>
+where
+    F: FnOnce(*mut *mut c_void, *mut *mut c_char) -> i32,
+{
+    let mut handle = ptr::null_mut();
+    let mut error = ptr::null_mut();
+
+    let status = call(&mut handle, &mut error);
+    if status != ffi::status::OK {
+        return Err(from_swift(status, error));
+    }
+
+    NonNull::new(handle).ok_or_else(|| {
+        from_status_message(
+            ffi::status::UNKNOWN,
+            "Swift bridge returned no handle".to_owned(),
+        )
+    })
 }
 
 pub fn bridge_flag<F>(call: F) -> Result<bool>

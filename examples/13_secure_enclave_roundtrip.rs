@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let software = P256KeyAgreementPrivateKey::generate()?;
     let enclave_secret = enclave.shared_secret(&software.public_key()?)?;
     let software_secret = software.shared_secret(&enclave.public_key()?)?;
-    assert_eq!(enclave_secret.as_bytes(), software_secret.as_bytes());
+    assert_eq!(enclave_secret, software_secret);
     println!("secure enclave signature bytes: {}", signature.len());
     Ok(())
 }

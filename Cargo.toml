@@ -41,6 +41,7 @@ default = []
 
 [dependencies]
 libc = "0.2"
+zeroize = ">=1.6, <1.9"
 
 [package.metadata.docs.rs]
 all-features = true

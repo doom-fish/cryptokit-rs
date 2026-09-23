@@ -2,11 +2,13 @@
 
 use crate::error::{CryptoKitError, Result};
 use crate::ffi;
-use crate::hkdf::HkdfAlgorithm;
+use crate::hkdf::{validate_output_byte_count, HkdfAlgorithm};
 use crate::private::bridge_bytes;
 use crate::public_key::SharedSecret;
 use crate::sha::ShaAlgorithm;
 use crate::symmetric::SymmetricKey;
+
+const X963_MAX_COUNTER: usize = 4_294_967_295;
 
 /// Key-derivation algorithms supported for shared secrets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,51 +34,20 @@ pub fn derive_hkdf(
     info: &[u8],
     output_len: usize,
 ) -> Result<SymmetricKey> {
-    if output_len == 0 {
-        return Err(CryptoKitError::InvalidArgument(
-            "derived key length must be greater than zero".to_owned(),
-        ));
-    }
-
+    validate_output_byte_count(algorithm, output_len)?;
     let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
-        match algorithm {
-            HkdfAlgorithm::Sha256 => ffi::ck_shared_secret_hkdf_sha256(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                salt.as_ptr(),
-                salt.len(),
-                info.as_ptr(),
-                info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-            HkdfAlgorithm::Sha384 => ffi::ck_shared_secret_hkdf_sha384(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                salt.as_ptr(),
-                salt.len(),
-                info.as_ptr(),
-                info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-            HkdfAlgorithm::Sha512 => ffi::ck_shared_secret_hkdf_sha512(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                salt.as_ptr(),
-                salt.len(),
-                info.as_ptr(),
-                info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-        }
+        ffi::ck_shared_secret_hkdf(
+            secret.handle.as_ptr(),
+            algorithm.as_ffi(),
+            salt.as_ptr(),
+            salt.len(),
+            info.as_ptr(),
+            info.len(),
+            output_len,
+            out,
+            out_len,
+            error_out,
+        )
     })?;
     Ok(SymmetricKey::from_bytes(bytes))
 }
@@ -92,45 +63,27 @@ pub fn derive_x963(
     shared_info: &[u8],
     output_len: usize,
 ) -> Result<SymmetricKey> {
-    if output_len == 0 {
-        return Err(CryptoKitError::InvalidArgument(
-            "derived key length must be greater than zero".to_owned(),
-        ));
+    let limit = algorithm
+        .digest_byte_count()
+        .saturating_mul(X963_MAX_COUNTER);
+    if output_len == 0 || output_len >= limit {
+        return Err(CryptoKitError::InvalidArgument(format!(
+            "ANSI X9.63 output length must be between 1 and {} bytes, got {output_len}",
+            limit - 1
+        )));
     }
 
     let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
-        match algorithm {
-            ShaAlgorithm::Sha256 => ffi::ck_shared_secret_x963_sha256(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                shared_info.as_ptr(),
-                shared_info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-            ShaAlgorithm::Sha384 => ffi::ck_shared_secret_x963_sha384(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                shared_info.as_ptr(),
-                shared_info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-            ShaAlgorithm::Sha512 => ffi::ck_shared_secret_x963_sha512(
-                secret.as_bytes().as_ptr(),
-                secret.as_bytes().len(),
-                shared_info.as_ptr(),
-                shared_info.len(),
-                output_len,
-                out,
-                out_len,
-                error_out,
-            ),
-        }
+        ffi::ck_shared_secret_x963(
+            secret.handle.as_ptr(),
+            algorithm.as_ffi(),
+            shared_info.as_ptr(),
+            shared_info.len(),
+            output_len,
+            out,
+            out_len,
+            error_out,
+        )
     })?;
     Ok(SymmetricKey::from_bytes(bytes))
 }
@@ -179,5 +132,76 @@ fn ensure_no_salt(salt: &[u8]) -> Result<()> {
         Err(CryptoKitError::InvalidArgument(
             "X9.63 derivation does not use salt; pass an empty slice".to_owned(),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ptr;
+
+    use super::{derive_x963, CryptoKitError, Result, ShaAlgorithm};
+    use crate::ffi;
+    use crate::private::bridge_bytes;
+    use crate::public_key::{KeyAgreementAlgorithm, KeyAgreementPrivateKey};
+
+    #[test]
+    fn swift_bridge_rejects_unrepresentable_output_lengths() -> Result<()> {
+        let alice = KeyAgreementPrivateKey::generate(KeyAgreementAlgorithm::X25519)?;
+        let bob = KeyAgreementPrivateKey::generate(KeyAgreementAlgorithm::X25519)?;
+        let secret = alice.shared_secret(&bob.public_key()?)?;
+
+        let hkdf = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_shared_secret_hkdf(
+                secret.handle.as_ptr(),
+                ffi::hash_algorithm::SHA256,
+                ptr::null(),
+                0,
+                ptr::null(),
+                0,
+                usize::MAX,
+                out,
+                out_len,
+                error_out,
+            )
+        });
+        assert!(matches!(hkdf, Err(CryptoKitError::InvalidArgument(_))));
+
+        let x963 = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_shared_secret_x963(
+                secret.handle.as_ptr(),
+                ffi::hash_algorithm::SHA384,
+                ptr::null(),
+                0,
+                usize::MAX,
+                out,
+                out_len,
+                error_out,
+            )
+        });
+        assert!(matches!(x963, Err(CryptoKitError::InvalidArgument(_))));
+
+        let oversized_hkdf = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_shared_secret_hkdf(
+                secret.handle.as_ptr(),
+                ffi::hash_algorithm::SHA256,
+                ptr::null(),
+                0,
+                ptr::null(),
+                0,
+                255 * 32 + 1,
+                out,
+                out_len,
+                error_out,
+            )
+        });
+        assert!(matches!(oversized_hkdf, Err(CryptoKitError::InvalidArgument(_))));
+
+        assert_eq!(
+            derive_x963(&secret, ShaAlgorithm::Sha384, b"info", 49)?
+                .as_bytes()
+                .len(),
+            49
+        );
+        Ok(())
     }
 }

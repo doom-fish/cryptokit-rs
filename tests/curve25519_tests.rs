@@ -14,6 +14,6 @@ fn curve25519_signing_and_key_agreement_round_trip() -> Result<()> {
     let bob = X25519PrivateKey::generate()?;
     let alice_secret = alice.shared_secret(&bob.public_key()?)?;
     let bob_secret = bob.shared_secret(&alice.public_key()?)?;
-    assert_eq!(alice_secret.as_bytes(), bob_secret.as_bytes());
+    assert_eq!(alice_secret, bob_secret);
     Ok(())
 }

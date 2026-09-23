@@ -11,7 +11,7 @@ use crate::kem::{KemAlgorithm, Mlkem1024PublicKey, Mlkem768PublicKey};
 use crate::key_agreement::DiffieHellmanKeyAgreement;
 use crate::mldsa::{Mldsa65PublicKey, Mldsa87PublicKey, MldsaAlgorithm};
 use crate::p256::{P256EcdsaSignature, P256KeyAgreementPublicKey, P256SigningPublicKey};
-use crate::private::{bridge_bytes, bridge_flag, bridge_status};
+use crate::private::{bridge_bytes, bridge_flag, bridge_handle, bridge_status};
 use crate::public_key::SharedSecret;
 use crate::symmetric::SymmetricKey;
 
@@ -515,17 +515,16 @@ impl SecureEnclaveKeyAgreementPrivateKey {
     ///
     /// Returns an error if key agreement fails.
     pub fn shared_secret(&self, peer: &P256KeyAgreementPublicKey) -> Result<SharedSecret> {
-        let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
+        let handle = bridge_handle(|out_handle, error_out| unsafe {
             ffi::ck_secure_enclave_key_agreement_private_key_shared_secret(
                 self.handle.as_ptr(),
                 peer.raw_representation().as_ptr(),
                 peer.raw_representation().len(),
-                out,
-                out_len,
+                out_handle,
                 error_out,
             )
         })?;
-        Ok(SharedSecret::from_bytes(bytes))
+        Ok(SharedSecret { handle })
     }
 }
 

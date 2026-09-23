@@ -1,7 +1,18 @@
 import CryptoKit
+import Darwin
 import Foundation
 
-private func ckKeyDerivationDigestLength(_ algorithm: Int32) throws -> Int {
+private let CK_X963_MAX_COUNTER = Int(UInt32.max)
+
+final class CKSharedSecretHolder {
+    let secret: SharedSecret
+
+    init(_ secret: SharedSecret) {
+        self.secret = secret
+    }
+}
+
+func ckKeyDerivationDigestLength(_ algorithm: Int32) throws -> Int {
     switch algorithm {
     case CK_HASH_SHA256:
         return 32
@@ -14,109 +25,130 @@ private func ckKeyDerivationDigestLength(_ algorithm: Int32) throws -> Int {
     }
 }
 
-private func ckKeyDerivationHmac(
-    _ algorithm: Int32,
-    key: Data,
-    message: Data
-) throws -> Data {
-    let symmetricKey = SymmetricKey(data: key)
-    switch algorithm {
-    case CK_HASH_SHA256:
-        return Data(Array(HMAC<SHA256>.authenticationCode(for: message, using: symmetricKey)))
-    case CK_HASH_SHA384:
-        return Data(Array(HMAC<SHA384>.authenticationCode(for: message, using: symmetricKey)))
-    case CK_HASH_SHA512:
-        return Data(Array(HMAC<SHA512>.authenticationCode(for: message, using: symmetricKey)))
-    default:
-        throw CKBridgeError.invalidArgument("unsupported key-derivation HMAC algorithm: \(algorithm)")
+func ckStoreSharedSecret(
+    _ secret: SharedSecret,
+    _ outHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32 {
+    guard let outHandle else {
+        return ckInvalidArgument(errorOut, "missing shared-secret output pointer")
     }
+    outHandle.pointee = Unmanaged.passRetained(CKSharedSecretHolder(secret)).toOpaque()
+    return CK_OK
 }
 
-private func ckKeyDerivationDigest(
+private func ckSharedSecretHolder(_ handle: UnsafeMutableRawPointer?) throws -> CKSharedSecretHolder {
+    guard let handle else {
+        throw CKBridgeError.invalidArgument("missing shared-secret handle")
+    }
+    return Unmanaged<CKSharedSecretHolder>.fromOpaque(handle).takeUnretainedValue()
+}
+
+private func ckSharedSecretHkdf(
+    _ secret: SharedSecret,
     _ algorithm: Int32,
-    data: Data
-) throws -> Data {
+    salt: Data,
+    info: Data,
+    outputByteCount: Int
+) throws -> SymmetricKey {
+    let maximum = 255 * (try ckKeyDerivationDigestLength(algorithm))
+    guard outputByteCount > 0, outputByteCount <= maximum else {
+        throw CKBridgeError.invalidArgument("HKDF output length must be between 1 and \(maximum) bytes")
+    }
+
     switch algorithm {
     case CK_HASH_SHA256:
-        return Data(Array(SHA256.hash(data: data)))
+        return secret.hkdfDerivedSymmetricKey(using: SHA256.self, salt: salt, sharedInfo: info, outputByteCount: outputByteCount)
     case CK_HASH_SHA384:
-        return Data(Array(SHA384.hash(data: data)))
+        return secret.hkdfDerivedSymmetricKey(using: SHA384.self, salt: salt, sharedInfo: info, outputByteCount: outputByteCount)
     case CK_HASH_SHA512:
-        return Data(Array(SHA512.hash(data: data)))
+        return secret.hkdfDerivedSymmetricKey(using: SHA512.self, salt: salt, sharedInfo: info, outputByteCount: outputByteCount)
     default:
         throw CKBridgeError.invalidArgument("unsupported key-derivation digest algorithm: \(algorithm)")
     }
 }
 
-private func ckSharedSecretHkdf(
-    _ algorithm: Int32,
-    sharedSecret: Data,
-    salt: Data,
-    info: Data,
-    outputLen: Int
-) throws -> Data {
-    guard outputLen > 0 else {
-        throw CKBridgeError.invalidArgument("derived key length must be greater than zero")
-    }
-
-    let digestLength = try ckKeyDerivationDigestLength(algorithm)
-    let effectiveSalt = salt.isEmpty ? Data(repeating: 0, count: digestLength) : salt
-    let pseudorandomKey = try ckKeyDerivationHmac(algorithm, key: effectiveSalt, message: sharedSecret)
-
-    var output = Data()
-    var previousBlock = Data()
-    var counter: UInt8 = 1
-
-    while output.count < outputLen {
-        var blockInput = Data()
-        blockInput.append(previousBlock)
-        blockInput.append(info)
-        blockInput.append(contentsOf: [counter])
-        previousBlock = try ckKeyDerivationHmac(algorithm, key: pseudorandomKey, message: blockInput)
-        output.append(previousBlock)
-        counter &+= 1
-    }
-
-    return output.prefix(outputLen)
-}
-
 private func ckSharedSecretX963(
+    _ secret: SharedSecret,
     _ algorithm: Int32,
-    sharedSecret: Data,
     sharedInfo: Data,
-    outputLen: Int
-) throws -> Data {
-    guard outputLen > 0 else {
-        throw CKBridgeError.invalidArgument("derived key length must be greater than zero")
+    outputByteCount: Int
+) throws -> SymmetricKey {
+    let limit = (try ckKeyDerivationDigestLength(algorithm)) * CK_X963_MAX_COUNTER
+    guard outputByteCount > 0, outputByteCount < limit else {
+        throw CKBridgeError.invalidArgument("ANSI X9.63 output length must be between 1 and \(limit - 1) bytes")
     }
 
-    var output = Data()
-    var counter: UInt32 = 1
-    while output.count < outputLen {
-        var digestInput = Data()
-        digestInput.append(sharedSecret)
-        var counterBigEndian = counter.bigEndian
-        withUnsafeBytes(of: &counterBigEndian) { digestInput.append(contentsOf: $0) }
-        digestInput.append(sharedInfo)
-        output.append(try ckKeyDerivationDigest(algorithm, data: digestInput))
-        counter &+= 1
+    switch algorithm {
+    case CK_HASH_SHA256:
+        return secret.x963DerivedSymmetricKey(using: SHA256.self, sharedInfo: sharedInfo, outputByteCount: outputByteCount)
+    case CK_HASH_SHA384:
+        return secret.x963DerivedSymmetricKey(using: SHA384.self, sharedInfo: sharedInfo, outputByteCount: outputByteCount)
+    case CK_HASH_SHA512:
+        return secret.x963DerivedSymmetricKey(using: SHA512.self, sharedInfo: sharedInfo, outputByteCount: outputByteCount)
+    default:
+        throw CKBridgeError.invalidArgument("unsupported key-derivation digest algorithm: \(algorithm)")
     }
-    return output.prefix(outputLen)
 }
 
-private func ckCopySharedSecretDerivation(
-    _ data: Data,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckCopyData(data, outBytes, outLen, errorOut)
+@_cdecl("ck_shared_secret_release")
+public func ck_shared_secret_release(_ handle: UnsafeMutableRawPointer?) {
+    guard let handle else {
+        return
+    }
+    Unmanaged<CKSharedSecretHolder>.fromOpaque(handle).release()
 }
 
-private func ckSharedSecretHkdfExport(
+@_cdecl("ck_shared_secret_retain")
+public func ck_shared_secret_retain(_ handle: UnsafeMutableRawPointer?) {
+    guard let handle else {
+        return
+    }
+    _ = Unmanaged<CKSharedSecretHolder>.fromOpaque(handle).retain()
+}
+
+@_cdecl("ck_shared_secret_byte_count")
+public func ck_shared_secret_byte_count(_ handle: UnsafeMutableRawPointer?) -> UInt {
+    guard let holder = try? ckSharedSecretHolder(handle) else {
+        return 0
+    }
+    return holder.secret.withUnsafeBytes { UInt($0.count) }
+}
+
+@_cdecl("ck_shared_secret_copy_bytes")
+public func ck_shared_secret_copy_bytes(
+    _ handle: UnsafeMutableRawPointer?,
+    _ outBytes: UnsafeMutablePointer<UInt8>?,
+    _ capacity: UInt
+) -> UInt {
+    guard let holder = try? ckSharedSecretHolder(handle), let outBytes else {
+        return 0
+    }
+    return holder.secret.withUnsafeBytes { source in
+        let count = min(source.count, Int(clamping: capacity))
+        guard count > 0, let base = source.baseAddress else {
+            return 0
+        }
+        memcpy(outBytes, base, count)
+        return UInt(count)
+    }
+}
+
+@_cdecl("ck_shared_secret_equal")
+public func ck_shared_secret_equal(
+    _ lhs: UnsafeMutableRawPointer?,
+    _ rhs: UnsafeMutableRawPointer?
+) -> UInt8 {
+    guard let left = try? ckSharedSecretHolder(lhs), let right = try? ckSharedSecretHolder(rhs) else {
+        return 0
+    }
+    return left.secret == right.secret ? 1 : 0
+}
+
+@_cdecl("ck_shared_secret_hkdf")
+public func ck_shared_secret_hkdf(
+    _ handle: UnsafeMutableRawPointer?,
     _ algorithm: Int32,
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
     _ saltBytes: UnsafePointer<UInt8>?,
     _ saltLen: UInt,
     _ infoBytes: UnsafePointer<UInt8>?,
@@ -127,15 +159,17 @@ private func ckSharedSecretHkdfExport(
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     do {
-        let secret = try ckData(secretBytes, secretLen)
+        let holder = try ckSharedSecretHolder(handle)
         let salt = try ckData(saltBytes, saltLen)
         let info = try ckData(infoBytes, infoLen)
-        return ckCopySharedSecretDerivation(
-            try ckSharedSecretHkdf(algorithm, sharedSecret: secret, salt: salt, info: info, outputLen: Int(outputLen)),
-            outBytes,
-            outLen,
-            errorOut
+        let key = try ckSharedSecretHkdf(
+            holder.secret,
+            algorithm,
+            salt: salt,
+            info: info,
+            outputByteCount: try ckByteCount(outputLen)
         )
+        return ckCopyData(key.withUnsafeBytes(ckOwnedData), outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {
@@ -143,10 +177,10 @@ private func ckSharedSecretHkdfExport(
     }
 }
 
-private func ckSharedSecretX963Export(
+@_cdecl("ck_shared_secret_x963")
+public func ck_shared_secret_x963(
+    _ handle: UnsafeMutableRawPointer?,
     _ algorithm: Int32,
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
     _ sharedInfoBytes: UnsafePointer<UInt8>?,
     _ sharedInfoLen: UInt,
     _ outputLen: UInt,
@@ -155,173 +189,18 @@ private func ckSharedSecretX963Export(
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     do {
-        let secret = try ckData(secretBytes, secretLen)
+        let holder = try ckSharedSecretHolder(handle)
         let sharedInfo = try ckData(sharedInfoBytes, sharedInfoLen)
-        return ckCopySharedSecretDerivation(
-            try ckSharedSecretX963(algorithm, sharedSecret: secret, sharedInfo: sharedInfo, outputLen: Int(outputLen)),
-            outBytes,
-            outLen,
-            errorOut
+        let key = try ckSharedSecretX963(
+            holder.secret,
+            algorithm,
+            sharedInfo: sharedInfo,
+            outputByteCount: try ckByteCount(outputLen)
         )
+        return ckCopyData(key.withUnsafeBytes(ckOwnedData), outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {
         return ckFail(CK_HKDF_FAILED, error, errorOut)
     }
-}
-
-@_cdecl("ck_shared_secret_hkdf_sha256")
-public func ck_shared_secret_hkdf_sha256(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ saltBytes: UnsafePointer<UInt8>?,
-    _ saltLen: UInt,
-    _ infoBytes: UnsafePointer<UInt8>?,
-    _ infoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretHkdfExport(
-        CK_HASH_SHA256,
-        secretBytes,
-        secretLen,
-        saltBytes,
-        saltLen,
-        infoBytes,
-        infoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
-}
-
-@_cdecl("ck_shared_secret_hkdf_sha384")
-public func ck_shared_secret_hkdf_sha384(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ saltBytes: UnsafePointer<UInt8>?,
-    _ saltLen: UInt,
-    _ infoBytes: UnsafePointer<UInt8>?,
-    _ infoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretHkdfExport(
-        CK_HASH_SHA384,
-        secretBytes,
-        secretLen,
-        saltBytes,
-        saltLen,
-        infoBytes,
-        infoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
-}
-
-@_cdecl("ck_shared_secret_hkdf_sha512")
-public func ck_shared_secret_hkdf_sha512(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ saltBytes: UnsafePointer<UInt8>?,
-    _ saltLen: UInt,
-    _ infoBytes: UnsafePointer<UInt8>?,
-    _ infoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretHkdfExport(
-        CK_HASH_SHA512,
-        secretBytes,
-        secretLen,
-        saltBytes,
-        saltLen,
-        infoBytes,
-        infoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
-}
-
-@_cdecl("ck_shared_secret_x963_sha256")
-public func ck_shared_secret_x963_sha256(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ sharedInfoBytes: UnsafePointer<UInt8>?,
-    _ sharedInfoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretX963Export(
-        CK_HASH_SHA256,
-        secretBytes,
-        secretLen,
-        sharedInfoBytes,
-        sharedInfoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
-}
-
-@_cdecl("ck_shared_secret_x963_sha384")
-public func ck_shared_secret_x963_sha384(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ sharedInfoBytes: UnsafePointer<UInt8>?,
-    _ sharedInfoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretX963Export(
-        CK_HASH_SHA384,
-        secretBytes,
-        secretLen,
-        sharedInfoBytes,
-        sharedInfoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
-}
-
-@_cdecl("ck_shared_secret_x963_sha512")
-public func ck_shared_secret_x963_sha512(
-    _ secretBytes: UnsafePointer<UInt8>?,
-    _ secretLen: UInt,
-    _ sharedInfoBytes: UnsafePointer<UInt8>?,
-    _ sharedInfoLen: UInt,
-    _ outputLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
-    _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32 {
-    ckSharedSecretX963Export(
-        CK_HASH_SHA512,
-        secretBytes,
-        secretLen,
-        sharedInfoBytes,
-        sharedInfoLen,
-        outputLen,
-        outBytes,
-        outLen,
-        errorOut
-    )
 }

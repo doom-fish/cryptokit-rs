@@ -223,24 +223,20 @@ private func ckSharedSecret(
     _ algorithm: Int32,
     privateKey: Data,
     publicKey: Data
-) throws -> Data {
+) throws -> SharedSecret {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        let secret = try P256.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        return try P256.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
             .sharedSecretFromKeyAgreement(with: P256.KeyAgreement.PublicKey(rawRepresentation: publicKey))
-        return secret.withUnsafeBytes(ckOwnedData)
     case CK_KEY_AGREEMENT_P384:
-        let secret = try P384.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        return try P384.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
             .sharedSecretFromKeyAgreement(with: P384.KeyAgreement.PublicKey(rawRepresentation: publicKey))
-        return secret.withUnsafeBytes(ckOwnedData)
     case CK_KEY_AGREEMENT_P521:
-        let secret = try P521.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        return try P521.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
             .sharedSecretFromKeyAgreement(with: P521.KeyAgreement.PublicKey(rawRepresentation: publicKey))
-        return secret.withUnsafeBytes(ckOwnedData)
     case CK_KEY_AGREEMENT_X25519:
-        let secret = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
+        return try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey)
             .sharedSecretFromKeyAgreement(with: Curve25519.KeyAgreement.PublicKey(rawRepresentation: publicKey))
-        return secret.withUnsafeBytes(ckOwnedData)
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -1475,14 +1471,13 @@ public func ck_key_agreement_shared_secret(
     _ privateKeyLen: UInt,
     _ publicKeyBytes: UnsafePointer<UInt8>?,
     _ publicKeyLen: UInt,
-    _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
-    _ outLen: UnsafeMutablePointer<UInt>?,
+    _ outHandle: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
     do {
         let privateKey = try ckData(privateKeyBytes, privateKeyLen)
         let publicKey = try ckData(publicKeyBytes, publicKeyLen)
-        return ckCopyData(try ckSharedSecret(algorithm, privateKey: privateKey, publicKey: publicKey), outBytes, outLen, errorOut)
+        return ckStoreSharedSecret(try ckSharedSecret(algorithm, privateKey: privateKey, publicKey: publicKey), outHandle, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {

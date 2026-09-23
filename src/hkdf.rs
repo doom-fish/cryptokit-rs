@@ -24,6 +24,24 @@ impl HkdfAlgorithm {
             Self::Sha512 => ffi::hash_algorithm::SHA512,
         }
     }
+
+    pub(crate) const fn max_output_byte_count(self) -> usize {
+        match self {
+            Self::Sha256 => 255 * 32,
+            Self::Sha384 => 255 * 48,
+            Self::Sha512 => 255 * 64,
+        }
+    }
+}
+
+pub(crate) fn validate_output_byte_count(algorithm: HkdfAlgorithm, output_len: usize) -> Result<()> {
+    let maximum = algorithm.max_output_byte_count();
+    if output_len == 0 || output_len > maximum {
+        return Err(CryptoKitError::InvalidArgument(format!(
+            "HKDF output length must be between 1 and {maximum} bytes, got {output_len}"
+        )));
+    }
+    Ok(())
 }
 
 /// Hash functions that can back `CryptoKit.HKDF<H>`.
@@ -56,11 +74,7 @@ pub fn hkdf(
     info: &[u8],
     output_len: usize,
 ) -> Result<SymmetricKey> {
-    if output_len == 0 {
-        return Err(CryptoKitError::InvalidArgument(
-            "HKDF output length must be greater than zero".to_owned(),
-        ));
-    }
+    validate_output_byte_count(algorithm, output_len)?;
 
     let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
         match algorithm {
@@ -148,11 +162,7 @@ pub fn expand<H>(
 where
     H: HkdfHashFunction,
 {
-    if output_len == 0 {
-        return Err(CryptoKitError::InvalidArgument(
-            "HKDF output length must be greater than zero".to_owned(),
-        ));
-    }
+    validate_output_byte_count(H::HKDF_ALGORITHM, output_len)?;
 
     let (info_ptr, info_len) = info.map_or((std::ptr::null(), 0_usize), |info| {
         (info.as_ptr(), info.len())
@@ -311,8 +321,8 @@ pub fn hkdf_expand_sha512(
 #[cfg(test)]
 mod tests {
     use super::{
-        hkdf, hkdf_expand_sha256, hkdf_extract_sha256, hkdf_sha256, HkdfAlgorithm, Result,
-        SymmetricKey,
+        bridge_bytes, ffi, hkdf, hkdf_expand_sha256, hkdf_extract_sha256, hkdf_sha256,
+        CryptoKitError, HkdfAlgorithm, Result, SymmetricKey,
     };
 
     fn hex(bytes: &[u8]) -> String {
@@ -352,6 +362,59 @@ mod tests {
 
         assert_eq!(derived.as_bytes(), expanded.as_bytes());
         assert_eq!(prk.byte_count(), 32);
+        Ok(())
+    }
+
+    #[test]
+    fn output_lengths_are_validated_before_and_inside_the_bridge() -> Result<()> {
+        let input_key_material = SymmetricKey::from_bytes(vec![0x42; 32]);
+        for output_len in [0, 255 * 32 + 1, usize::MAX] {
+            let result = hkdf_sha256(&input_key_material, b"salt", b"info", output_len);
+            assert!(matches!(result, Err(CryptoKitError::InvalidArgument(_))));
+        }
+        assert_eq!(
+            hkdf_sha256(&input_key_material, b"salt", b"info", 255 * 32)?
+                .as_bytes()
+                .len(),
+            255 * 32
+        );
+
+        let prk = hkdf_extract_sha256(&input_key_material, None)?;
+        for output_len in [0, 255 * 32 + 1, usize::MAX] {
+            let result = hkdf_expand_sha256(&prk, None, output_len);
+            assert!(matches!(result, Err(CryptoKitError::InvalidArgument(_))));
+        }
+
+        let raw = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_hkdf_sha256(
+                input_key_material.as_bytes().as_ptr(),
+                input_key_material.as_bytes().len(),
+                std::ptr::null(),
+                0,
+                std::ptr::null(),
+                0,
+                usize::MAX,
+                out,
+                out_len,
+                error_out,
+            )
+        });
+        assert!(matches!(raw, Err(CryptoKitError::InvalidArgument(_))));
+
+        let raw_expand = bridge_bytes(|out, out_len, error_out| unsafe {
+            ffi::ck_hkdf_expand(
+                ffi::hash_algorithm::SHA256,
+                prk.as_bytes().as_ptr(),
+                prk.as_bytes().len(),
+                std::ptr::null(),
+                0,
+                usize::MAX,
+                out,
+                out_len,
+                error_out,
+            )
+        });
+        assert!(matches!(raw_expand, Err(CryptoKitError::InvalidArgument(_))));
         Ok(())
     }
 

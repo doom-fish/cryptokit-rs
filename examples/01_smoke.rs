@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bob = KeyAgreementPrivateKey::generate(KeyAgreementAlgorithm::P256)?;
     let alice_secret = alice.shared_secret(&bob.public_key()?)?;
     let bob_secret = bob.shared_secret(&alice.public_key()?)?;
-    assert_eq!(alice_secret.as_bytes(), bob_secret.as_bytes());
+    assert_eq!(alice_secret, bob_secret);
     let derived = alice_secret.hkdf_sha256(b"salt", b"info", 32)?;
     assert_eq!(derived.as_bytes().len(), 32);
 
