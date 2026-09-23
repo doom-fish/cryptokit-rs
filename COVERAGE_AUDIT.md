@@ -6,6 +6,8 @@ GAPS: 0
 EXEMPT: 2
 COVERAGE_PCT: 100.00%
 
+Scope: the percentage counts 56 collapsed symbol families from MacOSX26.2.sdk, not individual symbols. Newer SDK additions are listed as not wrapped in `COVERAGE.md`, and the raw `cryptokit::ffi` declarations are not counted.
+
 Audited SDK source: `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.2.sdk/System/Library/Frameworks/CryptoKit.framework/Versions/A/Modules/CryptoKit.swiftmodule/x86_64-apple-macos.swiftinterface`
 
 Methodology: audited the public macOS `CryptoKit` surface from the swiftinterface and mapped it to `cryptokit-rs` public Rust APIs plus `swift-bridge` thunks. To keep the report readable, overload sets and protocol-conformance boilerplate (`==`, `hash(into:)`, `hashValue`, `description`, `allCases`, `Element`, `Iterator`) are collapsed into symbol families. macOS-unavailable declarations were filtered out. `AesCbc` is intentionally excluded because CryptoKit exposes no public CBC API on macOS. Swift-only error/meta utility families that are semantically covered by the crate's own error mapping (`CryptoKitError`) or are not independently actionable in Rust (`CryptoKitASN1Error / CryptoKitMetaError / CorecryptoCurveType`) are counted as `EXEMPT`; the remaining functional API surface is now fully wrapped.
@@ -15,17 +17,17 @@ Methodology: audited the public macOS `CryptoKit` surface from the swiftinterfac
 | --- | --- | --- | --- |
 | `SymmetricKey.init(size:) / init(data:) / bitCount` | struct + inits/var family | `CryptoKit.swiftinterface` | `symmetric::SymmetricKey` |
 | `SymmetricKeySize.bits128/bits192/bits256` | struct + var family | `CryptoKit.swiftinterface` | `symmetric::SymmetricKeySize`, `symmetric_key::supported_sizes` |
-| `AES` | enum namespace | `CryptoKit.swiftinterface` | `symmetric::AesGcm`, `aes_gcm::AesGcm` |
-| `AES.GCM.seal/open` | func family | `CryptoKit.swiftinterface` | `symmetric::AesGcm`, `aes_gcm::AesGcm` |
+| `AES` | enum namespace | `CryptoKit.swiftinterface` | `aes_gcm::AesGcm` |
+| `AES.GCM.seal/open` | func family | `CryptoKit.swiftinterface` | `aes_gcm::AesGcm` |
 | `AES.GCM.SealedBox.{combined,nonce,ciphertext,tag}` | struct + var family | `CryptoKit.swiftinterface` | `aes_gcm::AesGcmSealedBox` |
 | `AES.GCM.Nonce` | struct family | `CryptoKit.swiftinterface` | `aes_gcm::AesGcmNonce` |
 | `AES.KeyWrap` | enum + func family | `CryptoKit.swiftinterface` | `key_wrap::{AesKeyWrap, wrap, unwrap}` |
-| `ChaChaPoly.seal/open` | func family | `CryptoKit.swiftinterface` | `symmetric::ChaCha20Poly1305`, `chacha_poly::ChaChaPoly` |
+| `ChaChaPoly.seal/open` | func family | `CryptoKit.swiftinterface` | `chacha_poly::ChaChaPoly` |
 | `ChaChaPoly.SealedBox.{combined,nonce,ciphertext,tag}` | struct + var family | `CryptoKit.swiftinterface` | `chacha_poly::ChaChaPolySealedBox` |
 | `ChaChaPoly.Nonce` | struct family | `CryptoKit.swiftinterface` | `chacha_poly::ChaChaPolyNonce` |
 | `SharedSecret.hkdfDerivedSymmetricKey / x963DerivedSymmetricKey` | struct + func family | `CryptoKit.swiftinterface` | `public_key::SharedSecret`, `key_derivation::{derive_hkdf, derive_x963, derive}` |
 | `HKDF.{deriveKey,extract,expand}` | func family | `CryptoKit.swiftinterface` | `hkdf::{hkdf, extract, expand, hkdf_sha256, hkdf_sha384, hkdf_sha512, hkdf_extract_sha256, hkdf_extract_sha384, hkdf_extract_sha512, hkdf_expand_sha256, hkdf_expand_sha384, hkdf_expand_sha512}`, `key_derivation::derive_hkdf` |
-| `HMAC.init/update/finalize/authenticationCode/isValidAuthenticationCode` | struct + func family | `CryptoKit.swiftinterface` | `hmac::{Hmac, HmacSha256, HmacSha384, HmacSha512, HashedAuthenticationCode, hmac, hmac_typed, hmac_sha256, hmac_sha256_code, hmac_sha384, hmac_sha384_code, hmac_sha512, hmac_sha512_code, is_valid_authentication_code, is_valid_hmac_sha256, is_valid_hmac_sha384, is_valid_hmac_sha512}` |
+| `HMAC.init/update/finalize/authenticationCode/isValidAuthenticationCode` | struct + func family | `CryptoKit.swiftinterface` | `hmac::{Hmac, HmacSha256, HmacSha384, HmacSha512, HashedAuthenticationCode, hmac_typed, hmac_sha256, hmac_sha384, hmac_sha512, is_valid_authentication_code, is_valid_hmac_sha256, is_valid_hmac_sha384, is_valid_hmac_sha512}` |
 | `Insecure` | enum namespace | `CryptoKit.swiftinterface` | `insecure` module |
 | `Insecure.SHA1` | struct family | `CryptoKit.swiftinterface` | `insecure::{Sha1, Sha1Digest, sha1, sha1_digest}` |
 | `Insecure.MD5` | struct family | `CryptoKit.swiftinterface` | `insecure::{Md5, Md5Digest, md5, md5_digest}` |
@@ -62,7 +64,7 @@ Methodology: audited the public macOS `CryptoKit` surface from the swiftinterfac
 
 ## 🔴 GAPS
 
-No remaining functional gaps were found in the audited public `CryptoKit` surface.
+No gaps were found within the 56 audited macOS 26.2 families. The macOS 27.0 additions (in-place detached-tag AEAD, `SymmetricKey(copyingWithZeroing:)`, KEM `OneTimePrivateKey`, `RawSpan` overloads) were not part of this audit and are not wrapped; see `COVERAGE.md`.
 
 ## ⏭️ EXEMPT
 
