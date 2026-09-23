@@ -115,10 +115,6 @@ pub mod secure_enclave_accessibility {
     pub const AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: i32 = 1;
     pub const WHEN_UNLOCKED_THIS_DEVICE_ONLY: i32 = 2;
     pub const WHEN_PASSCODE_SET_THIS_DEVICE_ONLY: i32 = 3;
-    pub const AFTER_FIRST_UNLOCK: i32 = 4;
-    pub const WHEN_UNLOCKED: i32 = 5;
-    pub const ALWAYS_THIS_DEVICE_ONLY: i32 = 6;
-    pub const ALWAYS: i32 = 7;
 }
 
 extern "C" {

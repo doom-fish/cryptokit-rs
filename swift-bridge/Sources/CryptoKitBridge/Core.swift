@@ -51,10 +51,6 @@ let CK_SECURE_ENCLAVE_ACCESSIBILITY_DEFAULT: Int32 = 0
 let CK_SECURE_ENCLAVE_ACCESSIBILITY_AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: Int32 = 1
 let CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_UNLOCKED_THIS_DEVICE_ONLY: Int32 = 2
 let CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_PASSCODE_SET_THIS_DEVICE_ONLY: Int32 = 3
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_AFTER_FIRST_UNLOCK: Int32 = 4
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_UNLOCKED: Int32 = 5
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_ALWAYS_THIS_DEVICE_ONLY: Int32 = 6
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_ALWAYS: Int32 = 7
 
 let CK_KEM_MLKEM768: Int32 = 1
 let CK_KEM_MLKEM1024: Int32 = 2
@@ -273,23 +269,22 @@ func ckSecureEnclaveAccessControl(_ accessibility: Int32, _ flags: UInt64) throw
         protection = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
     case CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_PASSCODE_SET_THIS_DEVICE_ONLY:
         protection = kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_AFTER_FIRST_UNLOCK:
-        protection = kSecAttrAccessibleAfterFirstUnlock
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_UNLOCKED:
-        protection = kSecAttrAccessibleWhenUnlocked
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_ALWAYS_THIS_DEVICE_ONLY:
-        protection = kSecAttrAccessibleAlwaysThisDeviceOnly
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_ALWAYS:
-        protection = kSecAttrAccessibleAlways
     default:
-        throw CKBridgeError.invalidArgument("unsupported Secure Enclave accessibility: \(accessibility)")
+        throw CKBridgeError.invalidArgument(
+            "unsupported Secure Enclave accessibility \(accessibility); only ThisDeviceOnly classes are allowed"
+        )
+    }
+
+    let accessControlFlags = SecAccessControlCreateFlags(rawValue: UInt(flags))
+    guard accessControlFlags.contains(.privateKeyUsage) else {
+        throw CKBridgeError.invalidArgument("Secure Enclave access control must include privateKeyUsage")
     }
 
     var error: Unmanaged<CFError>?
     guard let accessControl = SecAccessControlCreateWithFlags(
         nil,
         protection,
-        SecAccessControlCreateFlags(rawValue: UInt(flags)),
+        accessControlFlags,
         &error
     ) else {
         throw CKBridgeError.invalidArgument(

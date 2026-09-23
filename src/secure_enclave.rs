@@ -5,7 +5,7 @@ use core::ops::{BitOr, BitOrAssign};
 use std::ptr;
 use std::ptr::NonNull;
 
-use crate::error::{from_swift, Result};
+use crate::error::{from_swift, CryptoKitError, Result};
 use crate::ffi;
 use crate::kem::{KemAlgorithm, Mlkem1024PublicKey, Mlkem768PublicKey};
 use crate::key_agreement::DiffieHellmanKeyAgreement;
@@ -35,19 +35,24 @@ where
     NonNull::new(handle).ok_or_else(|| from_swift(ffi::status::KEY_FAILED, error))
 }
 
-#[allow(clippy::missing_const_for_fn)]
 fn secure_enclave_access_control_parts(
     access_control: Option<&SecureEnclaveAccessControl>,
-) -> (i32, u64) {
-    access_control.map_or(
-        (ffi::secure_enclave_accessibility::DEFAULT, 0),
-        |access_control| {
-            (
-                access_control.accessibility.as_ffi(),
-                access_control.flags.bits(),
-            )
-        },
-    )
+) -> Result<(i32, u64)> {
+    let Some(access_control) = access_control else {
+        return Ok((ffi::secure_enclave_accessibility::DEFAULT, 0));
+    };
+    if !access_control
+        .flags
+        .contains(SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE)
+    {
+        return Err(CryptoKitError::InvalidArgument(
+            "Secure Enclave access control must include PRIVATE_KEY_USAGE".to_owned(),
+        ));
+    }
+    Ok((
+        access_control.accessibility.as_ffi(),
+        access_control.flags.bits(),
+    ))
 }
 
 fn authentication_context_handle(
@@ -63,10 +68,6 @@ pub enum SecureEnclaveAccessibility {
     AfterFirstUnlockThisDeviceOnly,
     WhenUnlockedThisDeviceOnly,
     WhenPasscodeSetThisDeviceOnly,
-    AfterFirstUnlock,
-    WhenUnlocked,
-    AlwaysThisDeviceOnly,
-    Always,
 }
 
 impl SecureEnclaveAccessibility {
@@ -81,12 +82,6 @@ impl SecureEnclaveAccessibility {
             Self::WhenPasscodeSetThisDeviceOnly => {
                 ffi::secure_enclave_accessibility::WHEN_PASSCODE_SET_THIS_DEVICE_ONLY
             }
-            Self::AfterFirstUnlock => ffi::secure_enclave_accessibility::AFTER_FIRST_UNLOCK,
-            Self::WhenUnlocked => ffi::secure_enclave_accessibility::WHEN_UNLOCKED,
-            Self::AlwaysThisDeviceOnly => {
-                ffi::secure_enclave_accessibility::ALWAYS_THIS_DEVICE_ONLY
-            }
-            Self::Always => ffi::secure_enclave_accessibility::ALWAYS,
         }
     }
 }
@@ -114,6 +109,11 @@ impl SecureEnclaveAccessControlFlags {
     #[must_use]
     pub const fn bits(self) -> u64 {
         self.0
+    }
+
+    #[must_use]
+    pub const fn contains(self, other: Self) -> bool {
+        self.0 & other.0 == other.0
     }
 }
 
@@ -164,8 +164,8 @@ impl SecureEnclaveAccessControl {
 impl Default for SecureEnclaveAccessControl {
     fn default() -> Self {
         Self::new(
-            SecureEnclaveAccessibility::AfterFirstUnlockThisDeviceOnly,
-            SecureEnclaveAccessControlFlags::empty(),
+            SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly,
+            SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE,
         )
     }
 }
@@ -298,7 +298,7 @@ impl SecureEnclaveSigningPrivateKey {
         authentication_context: Option<&SecureEnclaveAuthenticationContext>,
     ) -> Result<Self> {
         let (accessibility, access_control_flags) =
-            secure_enclave_access_control_parts(access_control);
+            secure_enclave_access_control_parts(access_control)?;
         let handle = bridge_secure_enclave_handle(|error_out| unsafe {
             ffi::ck_secure_enclave_signing_private_key_generate_with_options(
                 u8::from(compact_representable),
@@ -434,7 +434,7 @@ impl SecureEnclaveKeyAgreementPrivateKey {
         authentication_context: Option<&SecureEnclaveAuthenticationContext>,
     ) -> Result<Self> {
         let (accessibility, access_control_flags) =
-            secure_enclave_access_control_parts(access_control);
+            secure_enclave_access_control_parts(access_control)?;
         let handle = bridge_secure_enclave_handle(|error_out| unsafe {
             ffi::ck_secure_enclave_key_agreement_private_key_generate_with_options(
                 u8::from(compact_representable),
@@ -574,7 +574,7 @@ macro_rules! secure_enclave_mldsa_key {
                 authentication_context: Option<&SecureEnclaveAuthenticationContext>,
             ) -> Result<Self> {
                 let (accessibility, access_control_flags) =
-                    secure_enclave_access_control_parts(access_control);
+                    secure_enclave_access_control_parts(access_control)?;
                 let handle = bridge_secure_enclave_handle(|error_out| unsafe {
                     ffi::ck_secure_enclave_mldsa_private_key_generate_with_options(
                         $algorithm.as_ffi(),
@@ -732,7 +732,7 @@ macro_rules! secure_enclave_kem_key {
                 authentication_context: Option<&SecureEnclaveAuthenticationContext>,
             ) -> Result<Self> {
                 let (accessibility, access_control_flags) =
-                    secure_enclave_access_control_parts(access_control);
+                    secure_enclave_access_control_parts(access_control)?;
                 let handle = bridge_secure_enclave_handle(|error_out| unsafe {
                     ffi::ck_secure_enclave_kem_private_key_generate_with_options(
                         $algorithm.as_ffi(),
@@ -871,3 +871,51 @@ secure_enclave_kem_key!(
     KemAlgorithm::Mlkem1024,
     "A Secure Enclave-backed ML-KEM-1024 private key."
 );
+
+#[cfg(test)]
+mod tests {
+    use core::ffi::c_char;
+    use std::ptr;
+
+    use super::{ffi, from_swift, SecureEnclaveAccessControlFlags};
+
+    fn rejected_by_bridge(accessibility: i32, flags: SecureEnclaveAccessControlFlags) -> String {
+        let mut error: *mut c_char = ptr::null_mut();
+        let handle = unsafe {
+            ffi::ck_secure_enclave_signing_private_key_generate_with_options(
+                1,
+                accessibility,
+                flags.bits(),
+                ptr::null_mut(),
+                &mut error,
+            )
+        };
+        assert!(handle.is_null());
+        from_swift(ffi::status::KEY_FAILED, error)
+            .message()
+            .to_owned()
+    }
+
+    #[test]
+    fn swift_bridge_rejects_deprecated_and_migratable_accessibility() {
+        for accessibility in [4, 5, 6, 7] {
+            let message =
+                rejected_by_bridge(accessibility, SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE);
+            assert!(
+                message.contains("only ThisDeviceOnly classes are allowed")
+                    || message.contains("Secure Enclave is unavailable"),
+                "{message}"
+            );
+        }
+
+        let message = rejected_by_bridge(
+            ffi::secure_enclave_accessibility::WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+            SecureEnclaveAccessControlFlags::USER_PRESENCE,
+        );
+        assert!(
+            message.contains("must include privateKeyUsage")
+                || message.contains("Secure Enclave is unavailable"),
+            "{message}"
+        );
+    }
+}
