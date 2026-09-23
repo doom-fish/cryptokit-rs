@@ -1,5 +1,50 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.3.0] - Unreleased
+
+### Security
+
+- Secret types (`SymmetricKey`, `SigningPrivateKey`, `KeyAgreementPrivateKey`, the typed P-256 / P-384 / P-521 / Curve25519 private keys, the ML-KEM / ML-DSA / X-Wing private keys and `HashedAuthenticationCode`) keep their bytes in `Zeroizing` storage, redact `Debug`, and compare in constant time.
+- Buffers crossing the Swift bridge are wiped before they are freed: Rust zeroizes the malloc copies, and Swift copies inputs into self-wiping `Data`, wipes outputs after copying them out, and wipes before freeing.
+- `HashedAuthenticationCode` equality is constant-time, including comparisons against byte slices, vectors and arrays, so `computed == received` is safe.
+- Shared-secret HKDF and ANSI X9.63 derivations call CryptoKit's `SharedSecret.hkdfDerivedSymmetricKey` / `x963DerivedSymmetricKey` instead of hand-written code that ignored the 255 × HashLen cap and wrapped its block counter.
+- AES-CBC decryption failures are indistinguishable: one `DecryptionFailed` error without the CommonCrypto status. Empty and partial-block ciphertexts are rejected before `CCCrypt`, which otherwise reported success with bytes that were never decrypted.
+- Secure Enclave access control rejects the deprecated `kSecAttrAccessibleAlways*` classes and classes without `ThisDeviceOnly`.
+
+### Fixed
+
+- Output lengths are validated before calling Swift (HKDF and HKDF-Expand 1..=255 × HashLen, X9.63 below HashLen × (2³² − 1), HPKE `export_secret` 1..=255 × Nh), and the Swift thunks use `Int(exactly:)` plus the same bounds, so oversized requests return `InvalidArgument` instead of aborting the process.
+- `SecureEnclaveAccessControl::default()` now includes `PRIVATE_KEY_USAGE` and matches CryptoKit's default (`WhenUnlockedThisDeviceOnly`), so keys created with it are usable. Access control without `PRIVATE_KEY_USAGE` returns `InvalidArgument`.
+- The post-quantum and HPKE thunks no longer carry `@available` attributes that folded their runtime `#available` guards to `true`; on older macOS they return the "requires macOS N" error again instead of calling unavailable symbols.
+- Removed `as!` force casts from the Secure Enclave post-quantum constructors.
+
+### Changed
+
+- **Breaking:** `SharedSecret` wraps CryptoKit's `SharedSecret`. `as_bytes()` / `into_bytes()` are replaced by `hazmat_raw_bytes()`, which returns `Zeroizing<Vec<u8>>`; prefer `key_derivation::derive_hkdf` / `derive_x963`. Equality is constant-time and the type is `Send + Sync`.
+- **Breaking:** `SymmetricKey` no longer implements `Hash`. `SymmetricKey::into_bytes`, `into_raw_representation`, `into_integrity_checked_representation` and `HashedAuthenticationCode::into_bytes` return `Zeroizing<Vec<u8>>`.
+- **Breaking:** private-key `x963_representation`, `der_representation` and `seed_representation` return `Zeroizing<Vec<u8>>`; private-key `pem_representation` returns `Zeroizing<String>`.
+- **Breaking:** private-key constructors (`from_raw_representation`, `from_x963_representation`, `from_der_representation`, `from_seed_representation`, `from_integrity_checked_representation`) take `impl AsRef<[u8]>`.
+- **Breaking:** `hmac_sha256`, `hmac_sha384` and `hmac_sha512` return `HashedAuthenticationCode<H>`; use `.as_bytes()` for the raw MAC. `HashedAuthenticationCode` and `MessageAuthenticationCode` no longer implement or require `Hash`.
+- **Breaking:** AES-CBC moved from `cryptokit::aes_cbc` and the root/prelude `AesCbc` re-export to `cryptokit::hazmat::aes_cbc::AesCbc`.
+- **Breaking:** the root and prelude `AesGcm` is now `aes_gcm::AesGcm` (sealed boxes and authenticated data), and `ChaChaPoly` replaces `ChaCha20Poly1305`.
+- **Breaking:** `SecureEnclaveAccessibility` only offers the `ThisDeviceOnly` variants.
+- **Breaking:** the raw `cryptokit::ffi` declarations for shared secrets, the combined AES-GCM / ChaChaPoly thunks and the removed Secure Enclave accessibility constants changed with the bridge.
+- `rust-version` is now 1.82.
+
+### Added
+
+- `SharedSecret::hazmat_raw_bytes` and `SecureEnclaveAccessControlFlags::contains`.
+- Root and prelude re-exports of `HashedAuthenticationCode`, `AesGcmNonce`, `AesGcmSealedBox`, `ChaChaPoly`, `ChaChaPolyNonce` and `ChaChaPolySealedBox`, and a root re-export of `zeroize::Zeroizing`.
+
+### Removed
+
+- `symmetric::AesGcm`, `symmetric::ChaCha20Poly1305`, the `Vec`-returning dynamic `hmac()`, `hmac_sha256_code` / `hmac_sha384_code` / `hmac_sha512_code`, and the `AfterFirstUnlock`, `WhenUnlocked`, `AlwaysThisDeviceOnly` and `Always` Secure Enclave accessibility variants.
+
 ## [0.2.5] - 2026-05-19
 
 - Bump MSRV from 1.70 to 1.76 to match fleet baseline.

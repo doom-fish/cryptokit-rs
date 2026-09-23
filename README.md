@@ -2,9 +2,14 @@
 
 Safe Rust bindings for Apple's [CryptoKit](https://developer.apple.com/documentation/cryptokit) framework on macOS.
 
-> **Status:** v0.2.3 adds compile-time `@available` guards to post-quantum and HPKE thunks, enabling SDK-portable bridging. The surface builds and bridges 100% of audited CryptoKit APIs across symmetric encryption, signing, key agreement, key derivation, hashing, Secure Enclave, and post-quantum (ML-KEM, ML-DSA) families.
+> **Status:** v0.3.0 is a security release with breaking changes: secret types are zeroized, redacted from `Debug` and compared in constant time; shared-secret key derivation uses CryptoKit's own HKDF and ANSI X9.63; AES-CBC moved to `hazmat`. See `CHANGELOG.md` for migration notes. The bridge covers the symmetric encryption, signing, key agreement, key derivation, hashing, HPKE, Secure Enclave and post-quantum (ML-KEM, ML-DSA, X-Wing) families of the macOS 26 SDK; see [Coverage notes](#coverage-notes) for what is not wrapped.
 
 ## Installation
+
+```toml
+[dependencies]
+cryptokit-rs = "0.3.0"
+```
 
 The library is imported as `cryptokit`. Building requires macOS with Xcode 26 or newer (the macOS 26 SDK); the resulting binaries run on macOS 10.15 and later, and APIs that need a newer OS return an error at runtime.
 
