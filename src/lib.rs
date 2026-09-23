@@ -36,6 +36,8 @@ pub mod sha3;
 pub mod symmetric;
 pub mod symmetric_key;
 
+pub use aes_gcm::{AesGcm, AesGcmNonce, AesGcmSealedBox};
+pub use chacha_poly::{ChaChaPoly, ChaChaPolyNonce, ChaChaPolySealedBox};
 pub use error::{CryptoKitError, Result};
 pub use hashing::{hash, HashAlgorithm};
 pub use hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
@@ -69,12 +71,14 @@ pub use sha3::{
     hash as sha3_hash, sha3_256, sha3_384, sha3_512, Sha3Algorithm, Sha3_256, Sha3_256Digest,
     Sha3_384, Sha3_384Digest, Sha3_512, Sha3_512Digest,
 };
-pub use symmetric::{AesGcm, ChaCha20Poly1305, SymmetricKey, SymmetricKeySize};
+pub use symmetric::{SymmetricKey, SymmetricKeySize};
 pub use symmetric_key::supported_sizes as supported_symmetric_key_sizes;
 pub use zeroize::Zeroizing;
 
 /// Common imports for users of this crate.
 pub mod prelude {
+    pub use crate::aes_gcm::{AesGcm, AesGcmNonce, AesGcmSealedBox};
+    pub use crate::chacha_poly::{ChaChaPoly, ChaChaPolyNonce, ChaChaPolySealedBox};
     pub use crate::error::{CryptoKitError, Result};
     pub use crate::hashing::{hash, HashAlgorithm};
     pub use crate::hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
@@ -106,5 +110,5 @@ pub mod prelude {
         hash as sha3_hash, sha3_256, sha3_384, sha3_512, Sha3Algorithm, Sha3_256, Sha3_256Digest,
         Sha3_384, Sha3_384Digest, Sha3_512, Sha3_512Digest,
     };
-    pub use crate::symmetric::{AesGcm, ChaCha20Poly1305, SymmetricKey, SymmetricKeySize};
+    pub use crate::symmetric::{SymmetricKey, SymmetricKeySize};
 }

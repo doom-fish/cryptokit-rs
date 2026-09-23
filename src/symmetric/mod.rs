@@ -1,10 +1,10 @@
-//! Symmetric keys and AEAD ciphers.
+//! Symmetric keys.
 
 use core::fmt;
 
 use zeroize::Zeroizing;
 
-use crate::error::{CryptoKitError, Result};
+use crate::error::Result;
 use crate::ffi;
 use crate::private::{bridge_bytes, constant_time_eq};
 
@@ -89,129 +89,9 @@ impl fmt::Debug for SymmetricKey {
     }
 }
 
-/// AES-GCM authenticated encryption with combined output.
-pub struct AesGcm;
-
-impl AesGcm {
-    /// Encrypt a message, returning `CryptoKit`'s combined `nonce || ciphertext || tag` form.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the nonce length is invalid or the `CryptoKit` bridge rejects the request.
-    pub fn seal(message: &[u8], key: &SymmetricKey, nonce: Option<&[u8]>) -> Result<Vec<u8>> {
-        if let Some(nonce) = nonce {
-            if nonce.len() != 12 {
-                return Err(CryptoKitError::InvalidArgument(
-                    "AES-GCM nonces must be 12 bytes".to_owned(),
-                ));
-            }
-        }
-
-        let nonce = nonce.unwrap_or(&[]);
-        bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_aes_gcm_seal(
-                key.as_bytes().as_ptr(),
-                key.as_bytes().len(),
-                message.as_ptr(),
-                message.len(),
-                nonce.as_ptr(),
-                nonce.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })
-    }
-
-    /// Decrypt a combined AES-GCM payload returned by [`Self::seal`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the `CryptoKit` bridge rejects the request.
-    pub fn open(combined: &[u8], key: &SymmetricKey) -> Result<Vec<u8>> {
-        bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_aes_gcm_open(
-                key.as_bytes().as_ptr(),
-                key.as_bytes().len(),
-                combined.as_ptr(),
-                combined.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })
-    }
-}
-
-/// ChaCha20-Poly1305 authenticated encryption with combined output.
-pub struct ChaCha20Poly1305;
-
-impl ChaCha20Poly1305 {
-    /// Encrypt a message, returning `CryptoKit`'s combined `nonce || ciphertext || tag` form.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the nonce length is invalid or the `CryptoKit` bridge rejects the request.
-    pub fn seal(message: &[u8], key: &SymmetricKey, nonce: Option<&[u8]>) -> Result<Vec<u8>> {
-        if let Some(nonce) = nonce {
-            if nonce.len() != 12 {
-                return Err(CryptoKitError::InvalidArgument(
-                    "ChaCha20-Poly1305 nonces must be 12 bytes".to_owned(),
-                ));
-            }
-        }
-
-        let nonce = nonce.unwrap_or(&[]);
-        bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_chacha_poly_seal(
-                key.as_bytes().as_ptr(),
-                key.as_bytes().len(),
-                message.as_ptr(),
-                message.len(),
-                nonce.as_ptr(),
-                nonce.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })
-    }
-
-    /// Decrypt a combined ChaCha20-Poly1305 payload returned by [`Self::seal`].
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the `CryptoKit` bridge rejects the request.
-    pub fn open(combined: &[u8], key: &SymmetricKey) -> Result<Vec<u8>> {
-        bridge_bytes(|out, out_len, error_out| unsafe {
-            ffi::ck_chacha_poly_open(
-                key.as_bytes().as_ptr(),
-                key.as_bytes().len(),
-                combined.as_ptr(),
-                combined.len(),
-                out,
-                out_len,
-                error_out,
-            )
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{AesGcm, CryptoKitError, Result, SymmetricKey};
-
-    #[test]
-    fn aes_gcm_round_trips_with_explicit_nonce() -> Result<()> {
-        let key = SymmetricKey::from_bytes(vec![0x11; 32]);
-        let message = [0x41_u8; 16];
-        let nonce = [0_u8; 12];
-
-        let sealed = AesGcm::seal(&message, &key, Some(&nonce))?;
-        assert_eq!(sealed.len(), 44);
-        assert_eq!(AesGcm::open(&sealed, &key)?, message);
-        Ok(())
-    }
+    use super::SymmetricKey;
 
     #[test]
     fn symmetric_keys_redact_debug_and_compare_by_value() {
@@ -224,12 +104,5 @@ mod tests {
         different[31] = 0xac;
         assert_ne!(key, SymmetricKey::from_bytes(different));
         assert_eq!(key.clone().into_bytes().as_slice(), key.as_bytes());
-    }
-
-    #[test]
-    fn aes_gcm_rejects_invalid_nonce_lengths() {
-        let key = SymmetricKey::from_bytes(vec![0x22; 32]);
-        let result = AesGcm::seal(b"hello", &key, Some(&[0_u8; 11]));
-        assert!(matches!(result, Err(CryptoKitError::InvalidArgument(_))));
     }
 }

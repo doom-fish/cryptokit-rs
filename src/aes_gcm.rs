@@ -276,3 +276,27 @@ impl AesGcm {
         Ok(Self::seal_with_aad(message, key, nonce, authenticated_data)?.into_combined())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{AesGcm, CryptoKitError, Result, SymmetricKey};
+
+    #[test]
+    fn aes_gcm_round_trips_with_explicit_nonce() -> Result<()> {
+        let key = SymmetricKey::from_bytes(vec![0x11; 32]);
+        let message = [0x41_u8; 16];
+        let nonce = [0_u8; 12];
+
+        let sealed = AesGcm::seal(&message, &key, Some(&nonce))?;
+        assert_eq!(sealed.combined().len(), 44);
+        assert_eq!(AesGcm::open(&sealed, &key)?, message);
+        Ok(())
+    }
+
+    #[test]
+    fn aes_gcm_rejects_invalid_nonce_lengths() {
+        let key = SymmetricKey::from_bytes(vec![0x22; 32]);
+        let result = AesGcm::seal(b"hello", &key, Some(&[0_u8; 11]));
+        assert!(matches!(result, Err(CryptoKitError::InvalidArgument(_))));
+    }
+}

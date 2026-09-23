@@ -143,47 +143,6 @@ extern "C" {
         error_out: *mut *mut c_char,
     ) -> i32;
 
-    pub fn ck_aes_gcm_seal(
-        key_bytes: *const u8,
-        key_len: usize,
-        message_bytes: *const u8,
-        message_len: usize,
-        nonce_bytes: *const u8,
-        nonce_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_aes_gcm_open(
-        key_bytes: *const u8,
-        key_len: usize,
-        combined_bytes: *const u8,
-        combined_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_chacha_poly_seal(
-        key_bytes: *const u8,
-        key_len: usize,
-        message_bytes: *const u8,
-        message_len: usize,
-        nonce_bytes: *const u8,
-        nonce_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-    pub fn ck_chacha_poly_open(
-        key_bytes: *const u8,
-        key_len: usize,
-        combined_bytes: *const u8,
-        combined_len: usize,
-        out_bytes: *mut *mut u8,
-        out_len: *mut usize,
-        error_out: *mut *mut c_char,
-    ) -> i32;
-
     pub fn ck_hash(
         algorithm: i32,
         input_bytes: *const u8,
