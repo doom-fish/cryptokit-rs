@@ -1,4 +1,4 @@
-use cryptokit::aes_cbc::AesCbc;
+use cryptokit::hazmat::aes_cbc::AesCbc;
 use cryptokit::SymmetricKey;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -8,13 +8,13 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-pub mod aes_cbc;
 pub mod aes_gcm;
 pub mod chacha_poly;
 pub mod curve25519;
 pub mod error;
 pub mod ffi;
 pub mod hashing;
+pub mod hazmat;
 pub mod hkdf;
 pub mod hmac;
 pub mod hpke;
@@ -36,7 +36,6 @@ pub mod sha3;
 pub mod symmetric;
 pub mod symmetric_key;
 
-pub use aes_cbc::AesCbc;
 pub use error::{CryptoKitError, Result};
 pub use hashing::{hash, HashAlgorithm};
 pub use hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
@@ -76,7 +75,6 @@ pub use zeroize::Zeroizing;
 
 /// Common imports for users of this crate.
 pub mod prelude {
-    pub use crate::aes_cbc::AesCbc;
     pub use crate::error::{CryptoKitError, Result};
     pub use crate::hashing::{hash, HashAlgorithm};
     pub use crate::hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};

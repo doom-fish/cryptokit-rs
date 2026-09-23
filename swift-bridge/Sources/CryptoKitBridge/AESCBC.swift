@@ -1,6 +1,14 @@
 import CommonCrypto
 import Foundation
 
+private struct CKAesCbcFailure: LocalizedError {
+    let operation: CCOperation
+
+    var errorDescription: String? {
+        operation == CCOperation(kCCEncrypt) ? "AES-CBC encryption failed" : "AES-CBC decryption failed"
+    }
+}
+
 private func ckAesCbcTransform(
     operation: CCOperation,
     key: Data,
@@ -12,6 +20,11 @@ private func ckAesCbcTransform(
     }
     guard iv.count == kCCBlockSizeAES128 else {
         throw CKBridgeError.invalidArgument("AES-CBC IVs must be 16 bytes")
+    }
+    if operation == CCOperation(kCCDecrypt) {
+        guard !input.isEmpty, input.count % kCCBlockSizeAES128 == 0 else {
+            throw CKAesCbcFailure(operation: operation)
+        }
     }
 
     var output = Data(count: input.count + kCCBlockSizeAES128)
@@ -40,11 +53,8 @@ private func ckAesCbcTransform(
     }
 
     guard status == kCCSuccess else {
-        throw NSError(
-            domain: "CryptoKitBridge.AESCBC",
-            code: Int(status),
-            userInfo: [NSLocalizedDescriptionKey: "CCCrypt failed with status \(status)"]
-        )
+        ckWipe(&output)
+        throw CKAesCbcFailure(operation: operation)
     }
 
     output.removeSubrange(outputCount..<output.count)
