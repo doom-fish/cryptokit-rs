@@ -18,7 +18,7 @@ private final class CKHmacState<H: HashFunction>: CKHmacStateProtocol {
     }
 
     func finalize() -> Data {
-        Data(Array(state.finalize()))
+        state.finalize().withUnsafeBytes(ckOwnedData)
     }
 }
 
@@ -167,11 +167,11 @@ public func ck_hmac(
         let code: Data
         switch algorithm {
         case CK_HMAC_SHA256:
-            code = Data(Array(HMAC<SHA256>.authenticationCode(for: message, using: key)))
+            code = HMAC<SHA256>.authenticationCode(for: message, using: key).withUnsafeBytes(ckOwnedData)
         case CK_HMAC_SHA384:
-            code = Data(Array(HMAC<SHA384>.authenticationCode(for: message, using: key)))
+            code = HMAC<SHA384>.authenticationCode(for: message, using: key).withUnsafeBytes(ckOwnedData)
         case CK_HMAC_SHA512:
-            code = Data(Array(HMAC<SHA512>.authenticationCode(for: message, using: key)))
+            code = HMAC<SHA512>.authenticationCode(for: message, using: key).withUnsafeBytes(ckOwnedData)
         default:
             throw CKBridgeError.invalidArgument("unsupported HMAC algorithm: \(algorithm)")
         }

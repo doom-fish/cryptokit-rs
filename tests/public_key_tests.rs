@@ -1,3 +1,5 @@
+use cryptokit::curve25519::X25519PrivateKey;
+use cryptokit::p256::P256SigningPrivateKey;
 use cryptokit::public_key::{
     KeyAgreementAlgorithm, KeyAgreementPrivateKey, KeyAgreementPublicKey, SigningAlgorithm,
     SigningPrivateKey, SigningPublicKey,
@@ -141,5 +143,41 @@ fn key_agreement_representations_round_trip_for_nist_curves() -> Result<()> {
     ] {
         assert_key_agreement_representations_round_trip(algorithm)?;
     }
+    Ok(())
+}
+
+#[test]
+fn private_keys_redact_debug_and_compare_by_value() -> Result<()> {
+    let signing = SigningPrivateKey::generate(SigningAlgorithm::P256)?;
+    assert_eq!(
+        format!("{signing:?}"),
+        "SigningPrivateKey { algorithm: P256, .. }"
+    );
+    let restored =
+        SigningPrivateKey::from_raw_representation(SigningAlgorithm::P256, signing.raw_representation())?;
+    assert_eq!(restored, signing);
+    assert_ne!(SigningPrivateKey::generate(SigningAlgorithm::P256)?, signing);
+    assert_eq!(
+        restored.into_raw_representation().as_slice(),
+        signing.raw_representation()
+    );
+
+    let typed = P256SigningPrivateKey::from_raw_representation(signing.raw_representation())?;
+    assert_eq!(
+        format!("{typed:?}"),
+        "P256SigningPrivateKey(SigningPrivateKey { algorithm: P256, .. })"
+    );
+
+    let agreement = KeyAgreementPrivateKey::generate(KeyAgreementAlgorithm::X25519)?;
+    assert_eq!(
+        format!("{agreement:?}"),
+        "KeyAgreementPrivateKey { algorithm: X25519, .. }"
+    );
+    let x25519 = X25519PrivateKey::from_raw_representation(agreement.raw_representation())?;
+    assert_eq!(
+        format!("{x25519:?}"),
+        "X25519PrivateKey(KeyAgreementPrivateKey { algorithm: X25519, .. })"
+    );
+    assert_eq!(x25519.raw_representation(), agreement.raw_representation());
     Ok(())
 }

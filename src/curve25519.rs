@@ -1,5 +1,7 @@
 //! Curve25519 signing and key-agreement helpers.
 
+use zeroize::Zeroizing;
+
 use crate::error::Result;
 use crate::ffi;
 use crate::key_agreement::DiffieHellmanKeyAgreement;
@@ -35,7 +37,7 @@ impl Ed25519PrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for Ed25519.
-    pub fn from_raw_representation(raw: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_raw_representation(raw: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(SigningPrivateKey::from_raw_representation(
             SigningAlgorithm::Ed25519,
             raw,
@@ -50,7 +52,7 @@ impl Ed25519PrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.0.into_raw_representation()
     }
 
@@ -133,7 +135,7 @@ impl X25519PrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for X25519.
-    pub fn from_raw_representation(raw: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_raw_representation(raw: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(KeyAgreementPrivateKey::from_raw_representation(
             KeyAgreementAlgorithm::X25519,
             raw,
@@ -148,7 +150,7 @@ impl X25519PrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.0.into_raw_representation()
     }
 

@@ -134,6 +134,30 @@ func ckByteCount(_ value: UInt) throws -> Int {
     return count
 }
 
+func ckWipeAndFree(_ pointer: UnsafeMutableRawPointer, _ count: Int) {
+    _ = memset_s(pointer, count, 0, count)
+    free(pointer)
+}
+
+@inline(__always)
+func ckWipe(_ data: inout Data) {
+    data.withUnsafeMutableBytes { buffer in
+        guard let base = buffer.baseAddress, !buffer.isEmpty else {
+            return
+        }
+        _ = memset_s(base, buffer.count, 0, buffer.count)
+    }
+}
+
+@inline(__always)
+func ckWipingData(_ source: UnsafeRawPointer, _ count: Int) -> Data? {
+    guard let copy = malloc(count) else {
+        return nil
+    }
+    copy.copyMemory(from: source, byteCount: count)
+    return Data(bytesNoCopy: copy, count: count, deallocator: .custom(ckWipeAndFree))
+}
+
 @inline(__always)
 func ckData(_ bytes: UnsafePointer<UInt8>?, _ count: UInt) throws -> Data {
     guard count == 0 || bytes != nil else {
@@ -142,24 +166,28 @@ func ckData(_ bytes: UnsafePointer<UInt8>?, _ count: UInt) throws -> Data {
     guard count > 0, let bytes else {
         return Data()
     }
-    return Data(bytes: bytes, count: try ckByteCount(count))
+    guard let data = ckWipingData(bytes, try ckByteCount(count)) else {
+        throw CKBridgeError.invalidArgument("malloc failed")
+    }
+    return data
 }
 
 @inline(__always)
 func ckOwnedData(_ rawBuffer: UnsafeRawBufferPointer) -> Data {
-    guard let baseAddress = rawBuffer.baseAddress else {
+    guard let baseAddress = rawBuffer.baseAddress, !rawBuffer.isEmpty else {
         return Data()
     }
-    return Data(bytes: baseAddress, count: rawBuffer.count)
+    return ckWipingData(baseAddress, rawBuffer.count) ?? Data(bytes: baseAddress, count: rawBuffer.count)
 }
 
 @inline(__always)
 func ckCopyData(
-    _ data: Data,
+    _ data: consuming Data,
     _ outBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
     _ outLen: UnsafeMutablePointer<UInt>?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    defer { ckWipe(&data) }
     guard let outBytes, let outLen else {
         return ckInvalidArgument(errorOut, "missing output pointers")
     }

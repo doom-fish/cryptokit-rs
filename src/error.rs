@@ -4,6 +4,7 @@ use core::ffi::c_char;
 use core::fmt;
 
 use libc::free;
+use zeroize::Zeroize;
 
 use crate::ffi;
 
@@ -110,7 +111,9 @@ pub(crate) fn take_owned_buffer(ptr: *mut u8, len: usize) -> Vec<u8> {
 
     // SAFETY: The pointer and length are guaranteed by the Swift bridge to describe
     // a valid buffer of `len` bytes allocated via malloc/libc and owned by us now.
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) }.to_vec();
+    let buffer = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
+    let bytes = buffer.to_vec();
+    buffer.zeroize();
     // SAFETY: The pointer is valid and was allocated by the Swift bridge.
     // After creating the Vec copy, we free the original buffer.
     unsafe { free(ptr.cast()) };

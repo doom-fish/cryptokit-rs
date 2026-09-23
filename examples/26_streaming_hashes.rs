@@ -1,5 +1,5 @@
 use cryptokit::hkdf::{hkdf_expand_sha256, hkdf_extract_sha256};
-use cryptokit::hmac::{hmac_sha256_code, HmacSha256};
+use cryptokit::hmac::{hmac_sha256, HmacSha256};
 use cryptokit::sha::{sha256_digest, SHA2_256};
 use cryptokit::{Result, SymmetricKey};
 
@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     assert_eq!(digest, streamed);
 
     let key = SymmetricKey::from_bytes(vec![0xab; 32]);
-    let code = hmac_sha256_code(b"payload", &key)?;
+    let code = hmac_sha256(b"payload", &key)?;
     let mut hmac = HmacSha256::new(&key)?;
     hmac.update(b"pay")?;
     hmac.update(b"load")?;

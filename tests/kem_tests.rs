@@ -19,6 +19,9 @@ fn post_quantum_kems_round_trip() -> Result<()> {
         mlkem768_restored.public_key()?.raw_representation(),
         mlkem768_public.raw_representation()
     );
+    assert_eq!(mlkem768_restored, mlkem768);
+    assert_ne!(Mlkem768PrivateKey::generate()?, mlkem768);
+    assert_eq!(format!("{mlkem768:?}"), "Mlkem768PrivateKey { .. }");
 
     let mlkem1024 = Mlkem1024PrivateKey::generate()?;
     let mlkem1024_public = mlkem1024.public_key()?;

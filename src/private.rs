@@ -15,6 +15,19 @@ pub fn hex(bytes: &[u8]) -> String {
     output
 }
 
+pub fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let difference = left
+        .iter()
+        .zip(right)
+        .fold(0_u8, |difference, (left, right)| {
+            core::hint::black_box(difference | (left ^ right))
+        });
+    difference == 0
+}
+
 pub fn validate_byte_count(type_name: &str, expected: usize, bytes: Vec<u8>) -> Result<Vec<u8>> {
     let actual = bytes.len();
     if actual == expected {

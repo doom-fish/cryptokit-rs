@@ -1,5 +1,7 @@
 //! P384 curve-specific helpers.
 
+use zeroize::Zeroizing;
+
 use crate::error::Result;
 use crate::ffi;
 use crate::key_agreement::DiffieHellmanKeyAgreement;
@@ -115,7 +117,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_raw_representation(raw: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_raw_representation(raw: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(SigningPrivateKey::from_raw_representation(
             SigningAlgorithm::P384,
             raw,
@@ -130,7 +132,7 @@ impl P384SigningPrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.0.into_raw_representation()
     }
 
@@ -231,7 +233,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_raw_representation(raw: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_raw_representation(raw: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(KeyAgreementPrivateKey::from_raw_representation(
             KeyAgreementAlgorithm::P384,
             raw,
@@ -246,7 +248,7 @@ impl P384KeyAgreementPrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.0.into_raw_representation()
     }
 
@@ -331,7 +333,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_x963_representation(x963: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(SigningPrivateKey::from_x963_representation(
             SigningAlgorithm::P384,
             x963,
@@ -343,7 +345,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+    pub fn x963_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         self.0.x963_representation()
     }
 
@@ -352,7 +354,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_der_representation(der: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(SigningPrivateKey::from_der_representation(
             SigningAlgorithm::P384,
             der,
@@ -364,7 +366,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn der_representation(&self) -> Result<Vec<u8>> {
+    pub fn der_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         self.0.der_representation()
     }
 
@@ -385,7 +387,7 @@ impl P384SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn pem_representation(&self) -> Result<String> {
+    pub fn pem_representation(&self) -> Result<Zeroizing<String>> {
         self.0.pem_representation()
     }
 }
@@ -517,7 +519,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_x963_representation(x963: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_x963_representation(x963: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(KeyAgreementPrivateKey::from_x963_representation(
             KeyAgreementAlgorithm::P384,
             x963,
@@ -529,7 +531,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+    pub fn x963_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         self.0.x963_representation()
     }
 
@@ -538,7 +540,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the bytes are invalid for P384.
-    pub fn from_der_representation(der: impl Into<Vec<u8>>) -> Result<Self> {
+    pub fn from_der_representation(der: impl AsRef<[u8]>) -> Result<Self> {
         Ok(Self(KeyAgreementPrivateKey::from_der_representation(
             KeyAgreementAlgorithm::P384,
             der,
@@ -550,7 +552,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn der_representation(&self) -> Result<Vec<u8>> {
+    pub fn der_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         self.0.der_representation()
     }
 
@@ -571,7 +573,7 @@ impl P384KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if export fails.
-    pub fn pem_representation(&self) -> Result<String> {
+    pub fn pem_representation(&self) -> Result<Zeroizing<String>> {
         self.0.pem_representation()
     }
 }

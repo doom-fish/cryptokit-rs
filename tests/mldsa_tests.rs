@@ -21,6 +21,8 @@ fn post_quantum_signatures_round_trip() -> Result<()> {
         restored.public_key()?.raw_representation(),
         mldsa65_public.raw_representation()
     );
+    assert_eq!(restored, mldsa65);
+    assert_eq!(format!("{mldsa65:?}"), "Mldsa65PrivateKey { .. }");
 
     let mldsa87 = Mldsa87PrivateKey::generate()?;
     let mldsa87_public = mldsa87.public_key()?;

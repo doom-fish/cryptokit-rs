@@ -7,16 +7,16 @@ use core::marker::PhantomData;
 use std::ptr;
 use std::ptr::NonNull;
 
-use crate::error::{from_swift, Result};
+use zeroize::Zeroizing;
+
+use crate::error::{from_swift, CryptoKitError, Result};
 use crate::ffi;
-use crate::private::{bridge_bytes, bridge_flag, bridge_status, hex, validate_byte_count};
+use crate::private::{bridge_bytes, bridge_flag, bridge_status, constant_time_eq, hex};
 use crate::sha::{HashFunction, Sha256, Sha384, Sha512};
 use crate::symmetric::SymmetricKey;
 
 /// Typed message-authentication-code values produced by `CryptoKit`.
-pub trait MessageAuthenticationCode:
-    AsRef<[u8]> + Clone + Eq + core::hash::Hash + fmt::Display
-{
+pub trait MessageAuthenticationCode: AsRef<[u8]> + Clone + Eq + fmt::Display {
     /// Number of bytes in this MAC.
     fn byte_count(&self) -> usize;
 
@@ -24,7 +24,7 @@ pub trait MessageAuthenticationCode:
     fn as_bytes(&self) -> &[u8];
 
     /// Consume the MAC and return its bytes.
-    fn into_bytes(self) -> Vec<u8>;
+    fn into_bytes(self) -> Zeroizing<Vec<u8>>;
 }
 
 /// HMAC algorithms exposed by this crate.
@@ -65,9 +65,8 @@ impl HmacHashFunction for Sha512 {
 }
 
 /// Typed `CryptoKit.HashedAuthenticationCode<H>` bytes.
-#[derive(Debug)]
 pub struct HashedAuthenticationCode<H: HashFunction> {
-    bytes: Vec<u8>,
+    bytes: Zeroizing<Vec<u8>>,
     _marker: PhantomData<H>,
 }
 
@@ -82,15 +81,41 @@ impl<H: HashFunction> Clone for HashedAuthenticationCode<H> {
 
 impl<H: HashFunction> PartialEq for HashedAuthenticationCode<H> {
     fn eq(&self, other: &Self) -> bool {
-        self.bytes == other.bytes
+        constant_time_eq(&self.bytes, &other.bytes)
     }
 }
 
 impl<H: HashFunction> Eq for HashedAuthenticationCode<H> {}
 
-impl<H: HashFunction> core::hash::Hash for HashedAuthenticationCode<H> {
-    fn hash<T: core::hash::Hasher>(&self, state: &mut T) {
-        core::hash::Hash::hash(&self.bytes, state);
+impl<H: HashFunction> PartialEq<[u8]> for HashedAuthenticationCode<H> {
+    fn eq(&self, other: &[u8]) -> bool {
+        constant_time_eq(&self.bytes, other)
+    }
+}
+
+impl<H: HashFunction> PartialEq<&[u8]> for HashedAuthenticationCode<H> {
+    fn eq(&self, other: &&[u8]) -> bool {
+        constant_time_eq(&self.bytes, other)
+    }
+}
+
+impl<H: HashFunction> PartialEq<Vec<u8>> for HashedAuthenticationCode<H> {
+    fn eq(&self, other: &Vec<u8>) -> bool {
+        constant_time_eq(&self.bytes, other)
+    }
+}
+
+impl<H: HashFunction, const N: usize> PartialEq<[u8; N]> for HashedAuthenticationCode<H> {
+    fn eq(&self, other: &[u8; N]) -> bool {
+        constant_time_eq(&self.bytes, other)
+    }
+}
+
+impl<H: HashFunction> fmt::Debug for HashedAuthenticationCode<H> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("HashedAuthenticationCode")
+            .field("byte_count", &self.bytes.len())
+            .finish_non_exhaustive()
     }
 }
 
@@ -101,12 +126,15 @@ impl<H: HashFunction> HashedAuthenticationCode<H> {
     ///
     /// Returns an error if the byte length does not match the hash output width.
     pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Result<Self> {
-        let type_name = format!("HashedAuthenticationCode<{}>", type_name::<H>());
-        let bytes = validate_byte_count(
-            &type_name,
-            <H::Digest as crate::sha::Digest>::BYTE_COUNT,
-            bytes.into(),
-        )?;
+        let bytes = Zeroizing::new(bytes.into());
+        let expected = <H::Digest as crate::sha::Digest>::BYTE_COUNT;
+        if bytes.len() != expected {
+            return Err(CryptoKitError::InvalidArgument(format!(
+                "HashedAuthenticationCode<{}> expects {expected} bytes, got {}",
+                type_name::<H>(),
+                bytes.len()
+            )));
+        }
         Ok(Self {
             bytes,
             _marker: PhantomData,
@@ -121,7 +149,7 @@ impl<H: HashFunction> HashedAuthenticationCode<H> {
 
     /// Consume the MAC and return its bytes.
     #[must_use]
-    pub fn into_bytes(self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Zeroizing<Vec<u8>> {
         self.bytes
     }
 
@@ -141,7 +169,7 @@ impl<H: HashFunction> MessageAuthenticationCode for HashedAuthenticationCode<H> 
         Self::as_bytes(self)
     }
 
-    fn into_bytes(self) -> Vec<u8> {
+    fn into_bytes(self) -> Zeroizing<Vec<u8>> {
         Self::into_bytes(self)
     }
 }
@@ -278,26 +306,6 @@ impl<H: HmacHashFunction> Hmac<H> {
     }
 }
 
-/// Compute an HMAC for the given message and symmetric key.
-///
-/// # Errors
-///
-/// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac(algorithm: HmacAlgorithm, key: &SymmetricKey, message: &[u8]) -> Result<Vec<u8>> {
-    bridge_bytes(|out, out_len, error_out| unsafe {
-        ffi::ck_hmac(
-            algorithm.as_ffi(),
-            key.as_bytes().as_ptr(),
-            key.as_bytes().len(),
-            message.as_ptr(),
-            message.len(),
-            out,
-            out_len,
-            error_out,
-        )
-    })
-}
-
 /// Compute a typed HMAC for the given message and symmetric key.
 ///
 /// # Errors
@@ -307,7 +315,19 @@ pub fn hmac_typed<H>(key: &SymmetricKey, message: &[u8]) -> Result<HashedAuthent
 where
     H: HmacHashFunction,
 {
-    HashedAuthenticationCode::from_bytes(hmac(H::HMAC_ALGORITHM, key, message)?)
+    let code = bridge_bytes(|out, out_len, error_out| unsafe {
+        ffi::ck_hmac(
+            H::HMAC_ALGORITHM.as_ffi(),
+            key.as_bytes().as_ptr(),
+            key.as_bytes().len(),
+            message.as_ptr(),
+            message.len(),
+            out,
+            out_len,
+            error_out,
+        )
+    })?;
+    HashedAuthenticationCode::from_bytes(code)
 }
 
 /// Verify an HMAC for the given message and symmetric key.
@@ -340,24 +360,12 @@ where
     })
 }
 
-/// Compute an HMAC-SHA256 authentication code.
-///
-/// # Errors
-///
-/// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha256(message: &[u8], key: &SymmetricKey) -> Result<Vec<u8>> {
-    hmac(HmacAlgorithm::Sha256, key, message)
-}
-
 /// Compute a typed HMAC-SHA256 authentication code.
 ///
 /// # Errors
 ///
 /// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha256_code(
-    message: &[u8],
-    key: &SymmetricKey,
-) -> Result<HashedAuthenticationCode<Sha256>> {
+pub fn hmac_sha256(message: &[u8], key: &SymmetricKey) -> Result<HashedAuthenticationCode<Sha256>> {
     hmac_typed::<Sha256>(key, message)
 }
 
@@ -377,24 +385,12 @@ where
     is_valid_authentication_code::<Sha256, C>(authentication_code, message, key)
 }
 
-/// Compute an HMAC-SHA384 authentication code.
-///
-/// # Errors
-///
-/// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha384(message: &[u8], key: &SymmetricKey) -> Result<Vec<u8>> {
-    hmac(HmacAlgorithm::Sha384, key, message)
-}
-
 /// Compute a typed HMAC-SHA384 authentication code.
 ///
 /// # Errors
 ///
 /// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha384_code(
-    message: &[u8],
-    key: &SymmetricKey,
-) -> Result<HashedAuthenticationCode<Sha384>> {
+pub fn hmac_sha384(message: &[u8], key: &SymmetricKey) -> Result<HashedAuthenticationCode<Sha384>> {
     hmac_typed::<Sha384>(key, message)
 }
 
@@ -414,24 +410,12 @@ where
     is_valid_authentication_code::<Sha384, C>(authentication_code, message, key)
 }
 
-/// Compute an HMAC-SHA512 authentication code.
-///
-/// # Errors
-///
-/// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha512(message: &[u8], key: &SymmetricKey) -> Result<Vec<u8>> {
-    hmac(HmacAlgorithm::Sha512, key, message)
-}
-
 /// Compute a typed HMAC-SHA512 authentication code.
 ///
 /// # Errors
 ///
 /// Returns an error if the `CryptoKit` bridge rejects the request.
-pub fn hmac_sha512_code(
-    message: &[u8],
-    key: &SymmetricKey,
-) -> Result<HashedAuthenticationCode<Sha512>> {
+pub fn hmac_sha512(message: &[u8], key: &SymmetricKey) -> Result<HashedAuthenticationCode<Sha512>> {
     hmac_typed::<Sha512>(key, message)
 }
 

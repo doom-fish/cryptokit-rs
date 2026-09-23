@@ -242,7 +242,7 @@ where
     Self::PublicKey: HpkeDiffieHellmanPublicKey,
 {
     fn hpke_dh_algorithm_ffi(&self) -> i32;
-    fn hpke_private_key_bytes(&self) -> Result<Vec<u8>>;
+    fn hpke_private_key_bytes(&self) -> &[u8];
 }
 
 #[doc(hidden)]
@@ -257,7 +257,7 @@ where
     Self::PublicKey: HpkeKemPublicKey,
 {
     fn hpke_kem_algorithm_ffi(&self) -> i32;
-    fn hpke_private_key_bytes(&self) -> Result<Vec<u8>>;
+    fn hpke_private_key_bytes(&self) -> &[u8];
 }
 
 /// Stateful HPKE sender context.
@@ -358,7 +358,7 @@ impl Sender {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
-        let auth_key_bytes = authentication_key.hpke_private_key_bytes()?;
+        let auth_key_bytes = authentication_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
@@ -402,7 +402,7 @@ impl Sender {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
-        let auth_key_bytes = authentication_key.hpke_private_key_bytes()?;
+        let auth_key_bytes = authentication_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
@@ -550,7 +550,7 @@ impl Recipient {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKey,
     {
-        let private_key_bytes = private_key.hpke_private_key_bytes()?;
+        let private_key_bytes = private_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -596,7 +596,7 @@ impl Recipient {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKey,
     {
-        let private_key_bytes = private_key.hpke_private_key_bytes()?;
+        let private_key_bytes = private_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -641,7 +641,7 @@ impl Recipient {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
-        let private_key_bytes = private_key.hpke_private_key_bytes()?;
+        let private_key_bytes = private_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -688,7 +688,7 @@ impl Recipient {
         K: HpkeDiffieHellmanPrivateKeyImpl,
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
-        let private_key_bytes = private_key.hpke_private_key_bytes()?;
+        let private_key_bytes = private_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -732,7 +732,7 @@ impl Recipient {
         K: HpkeKemPrivateKeyImpl,
         K::PublicKey: HpkeKemPublicKey,
     {
-        let private_key_bytes = private_key.hpke_private_key_bytes()?;
+        let private_key_bytes = private_key.hpke_private_key_bytes();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_kem(
@@ -876,8 +876,8 @@ macro_rules! impl_hpke_dh_private_key {
                 $algorithm
             }
 
-            fn hpke_private_key_bytes(&self) -> Result<Vec<u8>> {
-                Ok(self.$raw().to_vec())
+            fn hpke_private_key_bytes(&self) -> &[u8] {
+                self.$raw()
             }
         }
     };
@@ -939,8 +939,8 @@ macro_rules! impl_hpke_kem_key {
                 $algorithm
             }
 
-            fn hpke_private_key_bytes(&self) -> Result<Vec<u8>> {
-                Ok(self.$private_raw().to_vec())
+            fn hpke_private_key_bytes(&self) -> &[u8] {
+                self.$private_raw()
             }
         }
     };

@@ -1,8 +1,12 @@
 //! Symmetric keys and AEAD ciphers.
 
+use core::fmt;
+
+use zeroize::Zeroizing;
+
 use crate::error::{CryptoKitError, Result};
 use crate::ffi;
-use crate::private::bridge_bytes;
+use crate::private::{bridge_bytes, constant_time_eq};
 
 /// Supported symmetric-key sizes for generated keys.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,9 +28,9 @@ impl SymmetricKeySize {
 }
 
 /// Opaque symmetric key material stored as raw bytes.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone)]
 pub struct SymmetricKey {
-    bytes: Vec<u8>,
+    bytes: Zeroizing<Vec<u8>>,
 }
 
 impl SymmetricKey {
@@ -39,14 +43,14 @@ impl SymmetricKey {
         let bytes = bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_symmetric_key_generate(size.as_ffi(), out, out_len, error_out)
         })?;
-        Ok(Self { bytes })
+        Ok(Self::from_bytes(bytes))
     }
 
     /// Wrap existing symmetric key bytes.
     #[must_use]
     pub fn from_bytes(bytes: impl Into<Vec<u8>>) -> Self {
         Self {
-            bytes: bytes.into(),
+            bytes: Zeroizing::new(bytes.into()),
         }
     }
 
@@ -58,7 +62,7 @@ impl SymmetricKey {
 
     /// Consume the key and return its underlying bytes.
     #[must_use]
-    pub fn into_bytes(self) -> Vec<u8> {
+    pub fn into_bytes(self) -> Zeroizing<Vec<u8>> {
         self.bytes
     }
 
@@ -66,6 +70,22 @@ impl SymmetricKey {
     #[must_use]
     pub fn bits(&self) -> usize {
         self.bytes.len() * 8
+    }
+}
+
+impl PartialEq for SymmetricKey {
+    fn eq(&self, other: &Self) -> bool {
+        constant_time_eq(&self.bytes, &other.bytes)
+    }
+}
+
+impl Eq for SymmetricKey {}
+
+impl fmt::Debug for SymmetricKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SymmetricKey")
+            .field("bits", &self.bits())
+            .finish_non_exhaustive()
     }
 }
 
@@ -191,6 +211,19 @@ mod tests {
         assert_eq!(sealed.len(), 44);
         assert_eq!(AesGcm::open(&sealed, &key)?, message);
         Ok(())
+    }
+
+    #[test]
+    fn symmetric_keys_redact_debug_and_compare_by_value() {
+        let key = SymmetricKey::from_bytes(vec![0xab; 32]);
+        assert_eq!(format!("{key:?}"), "SymmetricKey { bits: 256, .. }");
+        assert_eq!(key, SymmetricKey::from_bytes(vec![0xab; 32]));
+        assert_ne!(key, SymmetricKey::from_bytes(vec![0xab; 16]));
+
+        let mut different = vec![0xab; 32];
+        different[31] = 0xac;
+        assert_ne!(key, SymmetricKey::from_bytes(different));
+        assert_eq!(key.clone().into_bytes().as_slice(), key.as_bytes());
     }
 
     #[test]

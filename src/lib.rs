@@ -40,7 +40,7 @@ pub use aes_cbc::AesCbc;
 pub use error::{CryptoKitError, Result};
 pub use hashing::{hash, HashAlgorithm};
 pub use hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
-pub use hmac::{hmac, hmac_sha256, hmac_sha384, hmac_sha512, HmacAlgorithm};
+pub use hmac::{hmac_sha256, hmac_sha384, hmac_sha512, HashedAuthenticationCode, HmacAlgorithm};
 pub use hpke::{
     Dhkem, HpkeAead, HpkeCiphersuite, HpkeDiffieHellmanPrivateKey,
     HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeError, HpkeKdf, HpkeKem,
@@ -72,6 +72,7 @@ pub use sha3::{
 };
 pub use symmetric::{AesGcm, ChaCha20Poly1305, SymmetricKey, SymmetricKeySize};
 pub use symmetric_key::supported_sizes as supported_symmetric_key_sizes;
+pub use zeroize::Zeroizing;
 
 /// Common imports for users of this crate.
 pub mod prelude {
@@ -79,7 +80,9 @@ pub mod prelude {
     pub use crate::error::{CryptoKitError, Result};
     pub use crate::hashing::{hash, HashAlgorithm};
     pub use crate::hkdf::{hkdf, hkdf_sha256, hkdf_sha384, hkdf_sha512, HkdfAlgorithm};
-    pub use crate::hmac::{hmac, hmac_sha256, hmac_sha384, hmac_sha512, HmacAlgorithm};
+    pub use crate::hmac::{
+        hmac_sha256, hmac_sha384, hmac_sha512, HashedAuthenticationCode, HmacAlgorithm,
+    };
     pub use crate::hpke::{
         Dhkem, HpkeAead, HpkeCiphersuite, HpkeDiffieHellmanPrivateKey,
         HpkeDiffieHellmanPrivateKeyGeneration, HpkeDiffieHellmanPublicKey, HpkeKdf, HpkeKem,

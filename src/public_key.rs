@@ -11,7 +11,8 @@ use crate::ffi;
 use crate::hkdf::HkdfAlgorithm;
 use crate::key_derivation::derive_hkdf;
 use crate::private::{
-    bridge_bytes, bridge_flag, bridge_handle, bridge_optional_bytes, ensure_same_algorithm,
+    bridge_bytes, bridge_flag, bridge_handle, bridge_optional_bytes, constant_time_eq,
+    ensure_same_algorithm,
 };
 use crate::symmetric::SymmetricKey;
 
@@ -37,10 +38,26 @@ impl SigningAlgorithm {
 }
 
 /// Raw private signing key bytes plus algorithm metadata.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct SigningPrivateKey {
     algorithm: SigningAlgorithm,
-    raw: Vec<u8>,
+    raw: Zeroizing<Vec<u8>>,
+}
+
+impl PartialEq for SigningPrivateKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.algorithm == other.algorithm && constant_time_eq(&self.raw, &other.raw)
+    }
+}
+
+impl Eq for SigningPrivateKey {}
+
+impl fmt::Debug for SigningPrivateKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SigningPrivateKey")
+            .field("algorithm", &self.algorithm)
+            .finish_non_exhaustive()
+    }
 }
 
 impl SigningPrivateKey {
@@ -53,7 +70,10 @@ impl SigningPrivateKey {
         let raw = bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_signing_private_key_generate(algorithm.as_ffi(), out, out_len, error_out)
         })?;
-        Ok(Self { algorithm, raw })
+        Ok(Self {
+            algorithm,
+            raw: Zeroizing::new(raw),
+        })
     }
 
     /// Validate and wrap raw private-key bytes.
@@ -63,11 +83,13 @@ impl SigningPrivateKey {
     /// Returns an error if the bytes are not a valid `CryptoKit` private-key representation.
     pub fn from_raw_representation(
         algorithm: SigningAlgorithm,
-        raw: impl Into<Vec<u8>>,
+        raw: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let raw = raw.into();
-        let canonical =
-            signing_private_key_from_representation(algorithm, KeyRepresentationFormat::Raw, &raw)?;
+        let canonical = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Raw,
+            raw.as_ref(),
+        )?;
         Ok(Self {
             algorithm,
             raw: canonical,
@@ -88,7 +110,7 @@ impl SigningPrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.raw
     }
 
@@ -226,10 +248,26 @@ impl KeyAgreementAlgorithm {
 }
 
 /// Raw private key-agreement bytes plus algorithm metadata.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct KeyAgreementPrivateKey {
     algorithm: KeyAgreementAlgorithm,
-    raw: Vec<u8>,
+    raw: Zeroizing<Vec<u8>>,
+}
+
+impl PartialEq for KeyAgreementPrivateKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.algorithm == other.algorithm && constant_time_eq(&self.raw, &other.raw)
+    }
+}
+
+impl Eq for KeyAgreementPrivateKey {}
+
+impl fmt::Debug for KeyAgreementPrivateKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("KeyAgreementPrivateKey")
+            .field("algorithm", &self.algorithm)
+            .finish_non_exhaustive()
+    }
 }
 
 impl KeyAgreementPrivateKey {
@@ -242,7 +280,10 @@ impl KeyAgreementPrivateKey {
         let raw = bridge_bytes(|out, out_len, error_out| unsafe {
             ffi::ck_key_agreement_private_key_generate(algorithm.as_ffi(), out, out_len, error_out)
         })?;
-        Ok(Self { algorithm, raw })
+        Ok(Self {
+            algorithm,
+            raw: Zeroizing::new(raw),
+        })
     }
 
     /// Validate and wrap raw private-key bytes.
@@ -252,13 +293,12 @@ impl KeyAgreementPrivateKey {
     /// Returns an error if the bytes are not a valid `CryptoKit` private-key representation.
     pub fn from_raw_representation(
         algorithm: KeyAgreementAlgorithm,
-        raw: impl Into<Vec<u8>>,
+        raw: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let raw = raw.into();
         let canonical = key_agreement_private_key_from_representation(
             algorithm,
             KeyRepresentationFormat::Raw,
-            &raw,
+            raw.as_ref(),
         )?;
         Ok(Self {
             algorithm,
@@ -280,7 +320,7 @@ impl KeyAgreementPrivateKey {
 
     /// Consume the key and return its raw representation.
     #[must_use]
-    pub fn into_raw_representation(self) -> Vec<u8> {
+    pub fn into_raw_representation(self) -> Zeroizing<Vec<u8>> {
         self.raw
     }
 
@@ -405,11 +445,24 @@ fn utf8_key_representation(kind: &str, bytes: Vec<u8>) -> Result<String> {
     })
 }
 
+fn utf8_secret_key_representation(
+    kind: &str,
+    mut bytes: Zeroizing<Vec<u8>>,
+) -> Result<Zeroizing<String>> {
+    String::from_utf8(core::mem::take(&mut *bytes))
+        .map(Zeroizing::new)
+        .map_err(|error| {
+            let message = format!("{kind} is not valid UTF-8: {}", error.utf8_error());
+            drop(Zeroizing::new(error.into_bytes()));
+            CryptoKitError::KeyOperationFailed(message)
+        })
+}
+
 fn signing_private_key_from_representation(
     algorithm: SigningAlgorithm,
     format: KeyRepresentationFormat,
     input: &[u8],
-) -> Result<Vec<u8>> {
+) -> Result<Zeroizing<Vec<u8>>> {
     bridge_bytes(|out, out_len, error_out| unsafe {
         ffi::ck_signing_private_key_from_representation(
             algorithm.as_ffi(),
@@ -421,13 +474,14 @@ fn signing_private_key_from_representation(
             error_out,
         )
     })
+    .map(Zeroizing::new)
 }
 
 fn signing_private_key_representation(
     algorithm: SigningAlgorithm,
     raw: &[u8],
     format: KeyRepresentationFormat,
-) -> Result<Vec<u8>> {
+) -> Result<Zeroizing<Vec<u8>>> {
     bridge_bytes(|out, out_len, error_out| unsafe {
         ffi::ck_signing_private_key_representation(
             algorithm.as_ffi(),
@@ -439,6 +493,7 @@ fn signing_private_key_representation(
             error_out,
         )
     })
+    .map(Zeroizing::new)
 }
 
 fn signing_public_key_from_representation(
@@ -499,7 +554,7 @@ fn key_agreement_private_key_from_representation(
     algorithm: KeyAgreementAlgorithm,
     format: KeyRepresentationFormat,
     input: &[u8],
-) -> Result<Vec<u8>> {
+) -> Result<Zeroizing<Vec<u8>>> {
     bridge_bytes(|out, out_len, error_out| unsafe {
         ffi::ck_key_agreement_private_key_from_representation(
             algorithm.as_ffi(),
@@ -511,13 +566,14 @@ fn key_agreement_private_key_from_representation(
             error_out,
         )
     })
+    .map(Zeroizing::new)
 }
 
 fn key_agreement_private_key_representation(
     algorithm: KeyAgreementAlgorithm,
     raw: &[u8],
     format: KeyRepresentationFormat,
-) -> Result<Vec<u8>> {
+) -> Result<Zeroizing<Vec<u8>>> {
     bridge_bytes(|out, out_len, error_out| unsafe {
         ffi::ck_key_agreement_private_key_representation(
             algorithm.as_ffi(),
@@ -529,6 +585,7 @@ fn key_agreement_private_key_representation(
             error_out,
         )
     })
+    .map(Zeroizing::new)
 }
 
 fn key_agreement_public_key_from_representation(
@@ -605,7 +662,10 @@ impl SigningPrivateKey {
                 error_out,
             )
         })?;
-        Ok(Self { algorithm, raw })
+        Ok(Self {
+            algorithm,
+            raw: Zeroizing::new(raw),
+        })
     }
 
     /// Validate and wrap an ANSI X9.63 private-key representation.
@@ -615,13 +675,12 @@ impl SigningPrivateKey {
     /// Returns an error if the bytes are not valid for the selected algorithm.
     pub fn from_x963_representation(
         algorithm: SigningAlgorithm,
-        x963: impl Into<Vec<u8>>,
+        x963: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let x963 = x963.into();
         let raw = signing_private_key_from_representation(
             algorithm,
             KeyRepresentationFormat::X963,
-            &x963,
+            x963.as_ref(),
         )?;
         Ok(Self { algorithm, raw })
     }
@@ -631,7 +690,7 @@ impl SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the selected algorithm does not support this representation.
-    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+    pub fn x963_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::X963)
     }
 
@@ -643,11 +702,13 @@ impl SigningPrivateKey {
     /// running OS does not support DER key representations.
     pub fn from_der_representation(
         algorithm: SigningAlgorithm,
-        der: impl Into<Vec<u8>>,
+        der: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let der = der.into();
-        let raw =
-            signing_private_key_from_representation(algorithm, KeyRepresentationFormat::Der, &der)?;
+        let raw = signing_private_key_from_representation(
+            algorithm,
+            KeyRepresentationFormat::Der,
+            der.as_ref(),
+        )?;
         Ok(Self { algorithm, raw })
     }
 
@@ -656,7 +717,7 @@ impl SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the running OS does not support DER key representations.
-    pub fn der_representation(&self) -> Result<Vec<u8>> {
+    pub fn der_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         signing_private_key_representation(self.algorithm, &self.raw, KeyRepresentationFormat::Der)
     }
 
@@ -683,8 +744,8 @@ impl SigningPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the running OS does not support PEM key representations.
-    pub fn pem_representation(&self) -> Result<String> {
-        utf8_key_representation(
+    pub fn pem_representation(&self) -> Result<Zeroizing<String>> {
+        utf8_secret_key_representation(
             "signing private-key PEM representation",
             signing_private_key_representation(
                 self.algorithm,
@@ -866,7 +927,10 @@ impl KeyAgreementPrivateKey {
                 error_out,
             )
         })?;
-        Ok(Self { algorithm, raw })
+        Ok(Self {
+            algorithm,
+            raw: Zeroizing::new(raw),
+        })
     }
 
     /// Validate and wrap an ANSI X9.63 private-key representation.
@@ -876,13 +940,12 @@ impl KeyAgreementPrivateKey {
     /// Returns an error if the bytes are not valid for the selected algorithm.
     pub fn from_x963_representation(
         algorithm: KeyAgreementAlgorithm,
-        x963: impl Into<Vec<u8>>,
+        x963: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let x963 = x963.into();
         let raw = key_agreement_private_key_from_representation(
             algorithm,
             KeyRepresentationFormat::X963,
-            &x963,
+            x963.as_ref(),
         )?;
         Ok(Self { algorithm, raw })
     }
@@ -892,7 +955,7 @@ impl KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the selected algorithm does not support this representation.
-    pub fn x963_representation(&self) -> Result<Vec<u8>> {
+    pub fn x963_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         key_agreement_private_key_representation(
             self.algorithm,
             &self.raw,
@@ -908,13 +971,12 @@ impl KeyAgreementPrivateKey {
     /// representations.
     pub fn from_der_representation(
         algorithm: KeyAgreementAlgorithm,
-        der: impl Into<Vec<u8>>,
+        der: impl AsRef<[u8]>,
     ) -> Result<Self> {
-        let der = der.into();
         let raw = key_agreement_private_key_from_representation(
             algorithm,
             KeyRepresentationFormat::Der,
-            &der,
+            der.as_ref(),
         )?;
         Ok(Self { algorithm, raw })
     }
@@ -924,7 +986,7 @@ impl KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the running OS does not support DER key representations.
-    pub fn der_representation(&self) -> Result<Vec<u8>> {
+    pub fn der_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
         key_agreement_private_key_representation(
             self.algorithm,
             &self.raw,
@@ -955,8 +1017,8 @@ impl KeyAgreementPrivateKey {
     /// # Errors
     ///
     /// Returns an error if the running OS does not support PEM key representations.
-    pub fn pem_representation(&self) -> Result<String> {
-        utf8_key_representation(
+    pub fn pem_representation(&self) -> Result<Zeroizing<String>> {
+        utf8_secret_key_representation(
             "key-agreement private-key PEM representation",
             key_agreement_private_key_representation(
                 self.algorithm,

@@ -228,7 +228,7 @@ public func ck_secure_enclave_signing_private_key_public_key(
             throw CKBridgeError.invalidArgument("missing Secure Enclave signing-key handle")
         }
         let holder = Unmanaged<CKSecureEnclaveSigningPrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return ckCopyData(Data(holder.key.publicKey.rawRepresentation), outBytes, outLen, errorOut)
+        return ckCopyData(holder.key.publicKey.rawRepresentation, outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {
@@ -272,7 +272,7 @@ public func ck_secure_enclave_signing_private_key_sign(
         let message = try ckData(messageBytes, messageLen)
         let holder = Unmanaged<CKSecureEnclaveSigningPrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
         let signature = try holder.key.signature(for: message)
-        return ckCopyData(Data(signature.rawRepresentation), outBytes, outLen, errorOut)
+        return ckCopyData(signature.rawRepresentation, outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {
@@ -395,7 +395,7 @@ public func ck_secure_enclave_key_agreement_private_key_public_key(
             throw CKBridgeError.invalidArgument("missing Secure Enclave key-agreement handle")
         }
         let holder = Unmanaged<CKSecureEnclaveKeyAgreementPrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return ckCopyData(Data(holder.key.publicKey.rawRepresentation), outBytes, outLen, errorOut)
+        return ckCopyData(holder.key.publicKey.rawRepresentation, outBytes, outLen, errorOut)
     } catch let error as CKBridgeError {
         return ckFail(CK_INVALID_ARGUMENT, error, errorOut)
     } catch {

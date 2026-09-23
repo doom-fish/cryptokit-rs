@@ -1,8 +1,10 @@
 //! Key-encapsulation mechanism helpers.
 
+use zeroize::Zeroizing;
+
 use crate::error::Result;
 use crate::ffi;
-use crate::private::{bridge_bytes, bridge_two_buffers};
+use crate::private::{bridge_bytes, bridge_two_buffers, constant_time_eq};
 use crate::symmetric::SymmetricKey;
 
 /// A successful KEM encapsulation.
@@ -186,9 +188,23 @@ macro_rules! kem_key_type {
         }
 
         #[doc = $private_doc]
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Clone)]
         pub struct $private_name {
-            integrity_checked: Vec<u8>,
+            integrity_checked: Zeroizing<Vec<u8>>,
+        }
+
+        impl PartialEq for $private_name {
+            fn eq(&self, other: &Self) -> bool {
+                constant_time_eq(&self.integrity_checked, &other.integrity_checked)
+            }
+        }
+
+        impl Eq for $private_name {}
+
+        impl core::fmt::Debug for $private_name {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                f.debug_struct(stringify!($private_name)).finish_non_exhaustive()
+            }
         }
 
         impl $private_name {
@@ -198,10 +214,10 @@ macro_rules! kem_key_type {
             ///
             /// Returns an error if the seed bytes are invalid.
             pub fn from_seed_representation(
-                seed: impl Into<Vec<u8>>,
+                seed: impl AsRef<[u8]>,
                 public_key: Option<&$public_name>,
             ) -> Result<Self> {
-                let seed = seed.into();
+                let seed = seed.as_ref();
                 let public_key_bytes = public_key
                     .map(|value| value.raw_representation())
                     .unwrap_or_default();
@@ -217,7 +233,9 @@ macro_rules! kem_key_type {
                         error_out,
                     )
                 })?;
-                Ok(Self { integrity_checked })
+                Ok(Self {
+                    integrity_checked: Zeroizing::new(integrity_checked),
+                })
             }
 
             /// Validate and wrap an integrity-checked private-key representation.
@@ -226,9 +244,9 @@ macro_rules! kem_key_type {
             ///
             /// Returns an error if the bytes are invalid.
             pub fn from_integrity_checked_representation(
-                integrity_checked: impl Into<Vec<u8>>,
+                integrity_checked: impl AsRef<[u8]>,
             ) -> Result<Self> {
-                let integrity_checked = integrity_checked.into();
+                let integrity_checked = integrity_checked.as_ref();
                 let canonical = bridge_bytes(|out, out_len, error_out| unsafe {
                     ffi::ck_kem_private_key_validate(
                         $algorithm.as_ffi(),
@@ -240,7 +258,7 @@ macro_rules! kem_key_type {
                     )
                 })?;
                 Ok(Self {
-                    integrity_checked: canonical,
+                    integrity_checked: Zeroizing::new(canonical),
                 })
             }
 
@@ -249,7 +267,7 @@ macro_rules! kem_key_type {
             /// # Errors
             ///
             /// Returns an error if the Swift bridge rejects the request.
-            pub fn seed_representation(&self) -> Result<Vec<u8>> {
+            pub fn seed_representation(&self) -> Result<Zeroizing<Vec<u8>>> {
                 bridge_bytes(|out, out_len, error_out| unsafe {
                     ffi::ck_kem_private_key_seed_representation(
                         $algorithm.as_ffi(),
@@ -260,6 +278,7 @@ macro_rules! kem_key_type {
                         error_out,
                     )
                 })
+                .map(Zeroizing::new)
             }
 
             /// Borrow the integrity-checked representation.
@@ -270,7 +289,7 @@ macro_rules! kem_key_type {
 
             /// Consume the key and return its integrity-checked representation.
             #[must_use]
-            pub fn into_integrity_checked_representation(self) -> Vec<u8> {
+            pub fn into_integrity_checked_representation(self) -> Zeroizing<Vec<u8>> {
                 self.integrity_checked
             }
 
@@ -283,7 +302,9 @@ macro_rules! kem_key_type {
                 let integrity_checked = bridge_bytes(|out, out_len, error_out| unsafe {
                     ffi::ck_kem_private_key_generate($algorithm.as_ffi(), out, out_len, error_out)
                 })?;
-                Ok(Self { integrity_checked })
+                Ok(Self {
+                    integrity_checked: Zeroizing::new(integrity_checked),
+                })
             }
 
             /// Export the matching public key.

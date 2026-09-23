@@ -7,13 +7,13 @@ private let CK_ECDSA_SIGNATURE_DER: Int32 = 2
 private func ckSigningPrivateKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_SIGNING_P256:
-        return try Data(P256.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P256.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_P384:
-        return try Data(P384.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P384.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_P521:
-        return try Data(P521.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P521.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_ED25519:
-        return try Data(Curve25519.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try Curve25519.Signing.PrivateKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -22,13 +22,13 @@ private func ckSigningPrivateKeyData(_ algorithm: Int32, raw: Data) throws -> Da
 private func ckSigningPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_SIGNING_P256:
-        return try Data(P256.Signing.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P256.Signing.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_P384:
-        return try Data(P384.Signing.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P384.Signing.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_P521:
-        return try Data(P521.Signing.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P521.Signing.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_SIGNING_ED25519:
-        return try Data(Curve25519.Signing.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try Curve25519.Signing.PublicKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -37,13 +37,13 @@ private func ckSigningPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Dat
 private func ckSigningPublicKeyFromPrivate(_ algorithm: Int32, privateKey: Data) throws -> Data {
     switch algorithm {
     case CK_SIGNING_P256:
-        return try Data(P256.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P256.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_SIGNING_P384:
-        return try Data(P384.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P384.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_SIGNING_P521:
-        return try Data(P521.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P521.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_SIGNING_ED25519:
-        return try Data(Curve25519.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try Curve25519.Signing.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -53,13 +53,13 @@ private func ckSigningSignature(_ algorithm: Int32, privateKey: Data, message: D
     switch algorithm {
     case CK_SIGNING_P256:
         let key = try P256.Signing.PrivateKey(rawRepresentation: privateKey)
-        return try Data(key.signature(for: message).rawRepresentation)
+        return try key.signature(for: message).rawRepresentation
     case CK_SIGNING_P384:
         let key = try P384.Signing.PrivateKey(rawRepresentation: privateKey)
-        return try Data(key.signature(for: message).rawRepresentation)
+        return try key.signature(for: message).rawRepresentation
     case CK_SIGNING_P521:
         let key = try P521.Signing.PrivateKey(rawRepresentation: privateKey)
-        return try Data(key.signature(for: message).rawRepresentation)
+        return try key.signature(for: message).rawRepresentation
     case CK_SIGNING_ED25519:
         let key = try Curve25519.Signing.PrivateKey(rawRepresentation: privateKey)
         return try key.signature(for: message)
@@ -104,27 +104,27 @@ private func ckEcdsaRawSignature(
     case CK_SIGNING_P256:
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return try Data(P256.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+            return try P256.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
-            return try Data(P256.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+            return try P256.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
         }
     case CK_SIGNING_P384:
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return try Data(P384.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+            return try P384.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
-            return try Data(P384.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+            return try P384.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
         }
     case CK_SIGNING_P521:
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return try Data(P521.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation)
+            return try P521.Signing.ECDSASignature(rawRepresentation: signature).rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
-            return try Data(P521.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation)
+            return try P521.Signing.ECDSASignature(derRepresentation: signature).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported ECDSA signature format: \(format)")
         }
@@ -143,7 +143,7 @@ private func ckEcdsaSignatureRepresentation(
         let signature = try P256.Signing.ECDSASignature(rawRepresentation: rawSignature)
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return Data(signature.rawRepresentation)
+            return signature.rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
             return signature.derRepresentation
         default:
@@ -153,7 +153,7 @@ private func ckEcdsaSignatureRepresentation(
         let signature = try P384.Signing.ECDSASignature(rawRepresentation: rawSignature)
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return Data(signature.rawRepresentation)
+            return signature.rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
             return signature.derRepresentation
         default:
@@ -163,7 +163,7 @@ private func ckEcdsaSignatureRepresentation(
         let signature = try P521.Signing.ECDSASignature(rawRepresentation: rawSignature)
         switch format {
         case CK_ECDSA_SIGNATURE_RAW:
-            return Data(signature.rawRepresentation)
+            return signature.rawRepresentation
         case CK_ECDSA_SIGNATURE_DER:
             return signature.derRepresentation
         default:
@@ -177,13 +177,13 @@ private func ckEcdsaSignatureRepresentation(
 private func ckKeyAgreementPrivateKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        return try Data(P256.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P256.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        return try Data(P384.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P384.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        return try Data(P521.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try P521.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
-        return try Data(Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation)
+        return try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -192,13 +192,13 @@ private func ckKeyAgreementPrivateKeyData(_ algorithm: Int32, raw: Data) throws 
 private func ckKeyAgreementPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        return try Data(P256.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P256.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        return try Data(P384.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P384.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        return try Data(P521.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try P521.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
-        return try Data(Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -207,13 +207,13 @@ private func ckKeyAgreementPublicKeyData(_ algorithm: Int32, raw: Data) throws -
 private func ckKeyAgreementPublicKeyFromPrivate(_ algorithm: Int32, privateKey: Data) throws -> Data {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        return try Data(P256.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P256.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        return try Data(P384.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P384.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        return try Data(P521.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try P521.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
-        return try Data(Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation)
+        return try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: privateKey).publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -256,16 +256,16 @@ private func ckPemData(_ string: String) -> Data {
 private func ckSigningPrivateKeyGenerate(_ algorithm: Int32, compactRepresentable: Bool) throws -> Data {
     switch algorithm {
     case CK_SIGNING_P256:
-        return Data(P256.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P256.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_SIGNING_P384:
-        return Data(P384.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P384.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_SIGNING_P521:
-        return Data(P521.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P521.Signing.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_SIGNING_ED25519:
         guard compactRepresentable else {
             throw CKBridgeError.invalidArgument("compactRepresentable is unsupported for Ed25519")
         }
-        return Data(Curve25519.Signing.PrivateKey().rawRepresentation)
+        return Curve25519.Signing.PrivateKey().rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -280,57 +280,57 @@ private func ckSigningPrivateKeyFromRepresentation(
     case CK_SIGNING_P256:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P256.Signing.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P256.Signing.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P256.Signing.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P256.Signing.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.Signing.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P256.Signing.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P256.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing private-key representation: \(format)")
         }
     case CK_SIGNING_P384:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P384.Signing.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P384.Signing.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P384.Signing.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P384.Signing.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.Signing.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P384.Signing.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P384.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing private-key representation: \(format)")
         }
     case CK_SIGNING_P521:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P521.Signing.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P521.Signing.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P521.Signing.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P521.Signing.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.Signing.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P521.Signing.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P521.Signing.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing private-key representation: \(format)")
         }
@@ -338,7 +338,7 @@ private func ckSigningPrivateKeyFromRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw Ed25519 private-key representations are supported")
         }
-        return try Data(Curve25519.Signing.PrivateKey(rawRepresentation: input).rawRepresentation)
+        return try Curve25519.Signing.PrivateKey(rawRepresentation: input).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -354,9 +354,9 @@ private func ckSigningPrivateKeyRepresentation(
         let key = try P256.Signing.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -374,9 +374,9 @@ private func ckSigningPrivateKeyRepresentation(
         let key = try P384.Signing.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -394,9 +394,9 @@ private func ckSigningPrivateKeyRepresentation(
         let key = try P521.Signing.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -414,7 +414,7 @@ private func ckSigningPrivateKeyRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw Ed25519 private-key representations are supported")
         }
-        return try Data(Curve25519.Signing.PrivateKey(rawRepresentation: rawPrivateKey).rawRepresentation)
+        return try Curve25519.Signing.PrivateKey(rawRepresentation: rawPrivateKey).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -429,78 +429,78 @@ private func ckSigningPublicKeyFromRepresentation(
     case CK_SIGNING_P256:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P256.Signing.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P256.Signing.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P256.Signing.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P256.Signing.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P256.Signing.PublicKey(x963Representation: input).rawRepresentation)
+            return try P256.Signing.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P256.Signing.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P256.Signing.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.Signing.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P256.Signing.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P256.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing public-key representation: \(format)")
         }
     case CK_SIGNING_P384:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P384.Signing.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P384.Signing.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P384.Signing.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P384.Signing.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P384.Signing.PublicKey(x963Representation: input).rawRepresentation)
+            return try P384.Signing.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P384.Signing.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P384.Signing.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.Signing.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P384.Signing.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P384.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing public-key representation: \(format)")
         }
     case CK_SIGNING_P521:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P521.Signing.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P521.Signing.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P521.Signing.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P521.Signing.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P521.Signing.PublicKey(x963Representation: input).rawRepresentation)
+            return try P521.Signing.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P521.Signing.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P521.Signing.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.Signing.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P521.Signing.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P521.Signing.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported signing public-key representation: \(format)")
         }
@@ -508,7 +508,7 @@ private func ckSigningPublicKeyFromRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw Ed25519 public-key representations are supported")
         }
-        return try Data(Curve25519.Signing.PublicKey(rawRepresentation: input).rawRepresentation)
+        return try Curve25519.Signing.PublicKey(rawRepresentation: input).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -524,11 +524,11 @@ private func ckSigningPublicKeyRepresentation(
         let key = try P256.Signing.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -551,11 +551,11 @@ private func ckSigningPublicKeyRepresentation(
         let key = try P384.Signing.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -578,11 +578,11 @@ private func ckSigningPublicKeyRepresentation(
         let key = try P521.Signing.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -605,7 +605,7 @@ private func ckSigningPublicKeyRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw Ed25519 public-key representations are supported")
         }
-        return try Data(Curve25519.Signing.PublicKey(rawRepresentation: rawPublicKey).rawRepresentation)
+        return try Curve25519.Signing.PublicKey(rawRepresentation: rawPublicKey).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported signing algorithm: \(algorithm)")
     }
@@ -614,16 +614,16 @@ private func ckSigningPublicKeyRepresentation(
 private func ckKeyAgreementPrivateKeyGenerate(_ algorithm: Int32, compactRepresentable: Bool) throws -> Data {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        return Data(P256.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P256.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        return Data(P384.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P384.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        return Data(P521.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation)
+        return P521.KeyAgreement.PrivateKey(compactRepresentable: compactRepresentable).rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
         guard compactRepresentable else {
             throw CKBridgeError.invalidArgument("compactRepresentable is unsupported for X25519")
         }
-        return Data(Curve25519.KeyAgreement.PrivateKey().rawRepresentation)
+        return Curve25519.KeyAgreement.PrivateKey().rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -638,57 +638,57 @@ private func ckKeyAgreementPrivateKeyFromRepresentation(
     case CK_KEY_AGREEMENT_P256:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P256.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P256.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P256.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P256.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement private-key representation: \(format)")
         }
     case CK_KEY_AGREEMENT_P384:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P384.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P384.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P384.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P384.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement private-key representation: \(format)")
         }
     case CK_KEY_AGREEMENT_P521:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P521.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P521.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation)
+            return try P521.KeyAgreement.PrivateKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PrivateKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P521.KeyAgreement.PrivateKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement private-key representation: \(format)")
         }
@@ -696,7 +696,7 @@ private func ckKeyAgreementPrivateKeyFromRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw X25519 private-key representations are supported")
         }
-        return try Data(Curve25519.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation)
+        return try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: input).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -712,9 +712,9 @@ private func ckKeyAgreementPrivateKeyRepresentation(
         let key = try P256.KeyAgreement.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -732,9 +732,9 @@ private func ckKeyAgreementPrivateKeyRepresentation(
         let key = try P384.KeyAgreement.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -752,9 +752,9 @@ private func ckKeyAgreementPrivateKeyRepresentation(
         let key = try P521.KeyAgreement.PrivateKey(rawRepresentation: rawPrivateKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
@@ -772,7 +772,7 @@ private func ckKeyAgreementPrivateKeyRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw X25519 private-key representations are supported")
         }
-        return try Data(Curve25519.KeyAgreement.PrivateKey(rawRepresentation: rawPrivateKey).rawRepresentation)
+        return try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: rawPrivateKey).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -787,78 +787,78 @@ private func ckKeyAgreementPublicKeyFromRepresentation(
     case CK_KEY_AGREEMENT_P256:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P256.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P256.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P256.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P256.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P256.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P256.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement public-key representation: \(format)")
         }
     case CK_KEY_AGREEMENT_P384:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P384.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P384.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P384.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P384.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P384.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P384.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement public-key representation: \(format)")
         }
     case CK_KEY_AGREEMENT_P521:
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return try Data(P521.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
-            return try Data(P521.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(compactRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_X963:
-            return try Data(P521.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(x963Representation: input).rawRepresentation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
             }
-            return try Data(P521.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(compressedRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_DER:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("DER key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(derRepresentation: input).rawRepresentation
         case CK_KEY_FORMAT_PEM:
             guard #available(macOS 11.0, *) else {
                 throw CKBridgeError.invalidArgument("PEM key representations require macOS 11.0 or newer")
             }
-            return try Data(P521.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation)
+            return try P521.KeyAgreement.PublicKey(pemRepresentation: ckPemString(input)).rawRepresentation
         default:
             throw CKBridgeError.invalidArgument("unsupported key-agreement public-key representation: \(format)")
         }
@@ -866,7 +866,7 @@ private func ckKeyAgreementPublicKeyFromRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw X25519 public-key representations are supported")
         }
-        return try Data(Curve25519.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation)
+        return try Curve25519.KeyAgreement.PublicKey(rawRepresentation: input).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -882,11 +882,11 @@ private func ckKeyAgreementPublicKeyRepresentation(
         let key = try P256.KeyAgreement.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -909,11 +909,11 @@ private func ckKeyAgreementPublicKeyRepresentation(
         let key = try P384.KeyAgreement.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -936,11 +936,11 @@ private func ckKeyAgreementPublicKeyRepresentation(
         let key = try P521.KeyAgreement.PublicKey(rawRepresentation: rawPublicKey)
         switch format {
         case CK_KEY_FORMAT_RAW:
-            return Data(key.rawRepresentation)
+            return key.rawRepresentation
         case CK_KEY_FORMAT_COMPACT:
             return key.compactRepresentation
         case CK_KEY_FORMAT_X963:
-            return Data(key.x963Representation)
+            return key.x963Representation
         case CK_KEY_FORMAT_COMPRESSED:
             guard #available(macOS 13.0, *) else {
                 throw CKBridgeError.invalidArgument("compressed key representations require macOS 13.0 or newer")
@@ -963,7 +963,7 @@ private func ckKeyAgreementPublicKeyRepresentation(
         guard format == CK_KEY_FORMAT_RAW else {
             throw CKBridgeError.invalidArgument("only raw X25519 public-key representations are supported")
         }
-        return try Data(Curve25519.KeyAgreement.PublicKey(rawRepresentation: rawPublicKey).rawRepresentation)
+        return try Curve25519.KeyAgreement.PublicKey(rawRepresentation: rawPublicKey).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported key agreement algorithm: \(algorithm)")
     }
@@ -1224,13 +1224,13 @@ public func ck_signing_private_key_generate(
     let data: Data
     switch algorithm {
     case CK_SIGNING_P256:
-        data = Data(P256.Signing.PrivateKey().rawRepresentation)
+        data = P256.Signing.PrivateKey().rawRepresentation
     case CK_SIGNING_P384:
-        data = Data(P384.Signing.PrivateKey().rawRepresentation)
+        data = P384.Signing.PrivateKey().rawRepresentation
     case CK_SIGNING_P521:
-        data = Data(P521.Signing.PrivateKey().rawRepresentation)
+        data = P521.Signing.PrivateKey().rawRepresentation
     case CK_SIGNING_ED25519:
-        data = Data(Curve25519.Signing.PrivateKey().rawRepresentation)
+        data = Curve25519.Signing.PrivateKey().rawRepresentation
     default:
         return ckInvalidArgument(errorOut, "unsupported signing algorithm: \(algorithm)")
     }
@@ -1394,13 +1394,13 @@ public func ck_key_agreement_private_key_generate(
     let data: Data
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        data = Data(P256.KeyAgreement.PrivateKey().rawRepresentation)
+        data = P256.KeyAgreement.PrivateKey().rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        data = Data(P384.KeyAgreement.PrivateKey().rawRepresentation)
+        data = P384.KeyAgreement.PrivateKey().rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        data = Data(P521.KeyAgreement.PrivateKey().rawRepresentation)
+        data = P521.KeyAgreement.PrivateKey().rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
-        data = Data(Curve25519.KeyAgreement.PrivateKey().rawRepresentation)
+        data = Curve25519.KeyAgreement.PrivateKey().rawRepresentation
     default:
         return ckInvalidArgument(errorOut, "unsupported key agreement algorithm: \(algorithm)")
     }

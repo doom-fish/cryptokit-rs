@@ -93,13 +93,13 @@ private func ckHpkeDhPublicKeyFromSerialization(
 ) throws -> Data {
     switch algorithm {
     case CK_KEY_AGREEMENT_P256:
-        return try Data(P256.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation)
+        return try P256.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation
     case CK_KEY_AGREEMENT_P384:
-        return try Data(P384.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation)
+        return try P384.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation
     case CK_KEY_AGREEMENT_P521:
-        return try Data(P521.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation)
+        return try P521.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation
     case CK_KEY_AGREEMENT_X25519:
-        return try Data(Curve25519.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation)
+        return try Curve25519.KeyAgreement.PublicKey(serialization, kem: kem).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported HPKE Diffie-Hellman algorithm: \(algorithm)")
     }
@@ -133,7 +133,7 @@ private func ckHpkeKemPublicKeyFromSerialization(
 ) throws -> Data {
     switch algorithm {
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PublicKey(serialization, kem: kem).rawRepresentation)
+        return try XWingMLKEM768X25519.PublicKey(serialization, kem: kem).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported HPKE KEM public-key algorithm: \(algorithm)")
     }

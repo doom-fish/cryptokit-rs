@@ -9,14 +9,15 @@ private func ckPostQuantumSymmetricKeyData(_ key: SymmetricKey) -> Data {
 
 @available(macOS 26.0, *)
 private func ckCopyTwoData(
-    _ first: Data,
+    _ first: consuming Data,
     _ firstOutBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
     _ firstOutLen: UnsafeMutablePointer<UInt>?,
-    _ second: Data,
+    _ second: consuming Data,
     _ secondOutBytes: UnsafeMutablePointer<UnsafeMutablePointer<UInt8>?>?,
     _ secondOutLen: UnsafeMutablePointer<UInt>?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> Int32 {
+    let firstCount = first.count
     let firstStatus = ckCopyData(first, firstOutBytes, firstOutLen, errorOut)
     guard firstStatus == CK_OK else {
         return firstStatus
@@ -25,7 +26,7 @@ private func ckCopyTwoData(
     let secondStatus = ckCopyData(second, secondOutBytes, secondOutLen, errorOut)
     guard secondStatus == CK_OK else {
         if let buffer = firstOutBytes?.pointee {
-            free(buffer)
+            ckWipeAndFree(buffer, firstCount)
             firstOutBytes?.pointee = nil
         }
         firstOutLen?.pointee = 0
@@ -75,11 +76,11 @@ private final class CKSecureEnclaveMLKEM1024PrivateKeyHolder {
 private func ckKemPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_KEM_MLKEM768:
-        return try Data(MLKEM768.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try MLKEM768.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_KEM_MLKEM1024:
-        return try Data(MLKEM1024.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try MLKEM1024.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try XWingMLKEM768X25519.PublicKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -89,11 +90,11 @@ private func ckKemPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
 private func ckKemPrivateKeyGenerate(_ algorithm: Int32) throws -> Data {
     switch algorithm {
     case CK_KEM_MLKEM768:
-        return try Data(MLKEM768.PrivateKey.generate().integrityCheckedRepresentation)
+        return try MLKEM768.PrivateKey.generate().integrityCheckedRepresentation
     case CK_KEM_MLKEM1024:
-        return try Data(MLKEM1024.PrivateKey.generate().integrityCheckedRepresentation)
+        return try MLKEM1024.PrivateKey.generate().integrityCheckedRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PrivateKey.generate().integrityCheckedRepresentation)
+        return try XWingMLKEM768X25519.PrivateKey.generate().integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -108,13 +109,13 @@ private func ckKemPrivateKeyFromSeed(
     switch algorithm {
     case CK_KEM_MLKEM768:
         let publicKey = try publicKey.map { try MLKEM768.PublicKey(rawRepresentation: $0) }
-        return try Data(MLKEM768.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation)
+        return try MLKEM768.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation
     case CK_KEM_MLKEM1024:
         let publicKey = try publicKey.map { try MLKEM1024.PublicKey(rawRepresentation: $0) }
-        return try Data(MLKEM1024.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation)
+        return try MLKEM1024.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
         let publicKey = try publicKey.map { try XWingMLKEM768X25519.PublicKey(rawRepresentation: $0) }
-        return try Data(XWingMLKEM768X25519.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation)
+        return try XWingMLKEM768X25519.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -124,11 +125,11 @@ private func ckKemPrivateKeyFromSeed(
 private func ckKemPrivateKeyData(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_KEM_MLKEM768:
-        return try Data(MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation)
+        return try MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation
     case CK_KEM_MLKEM1024:
-        return try Data(MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation)
+        return try MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation)
+        return try XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -138,11 +139,11 @@ private func ckKemPrivateKeyData(_ algorithm: Int32, integrityChecked: Data) thr
 private func ckKemPrivateKeySeedRepresentation(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_KEM_MLKEM768:
-        return try Data(MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation)
+        return try MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation
     case CK_KEM_MLKEM1024:
-        return try Data(MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation)
+        return try MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation)
+        return try XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -152,11 +153,11 @@ private func ckKemPrivateKeySeedRepresentation(_ algorithm: Int32, integrityChec
 private func ckKemPrivateKeyPublicKey(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_KEM_MLKEM768:
-        return try Data(MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation)
+        return try MLKEM768.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation
     case CK_KEM_MLKEM1024:
-        return try Data(MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation)
+        return try MLKEM1024.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation
     case CK_KEM_XWING_MLKEM768_X25519:
-        return try Data(XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation)
+        return try XWingMLKEM768X25519.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported KEM algorithm: \(algorithm)")
     }
@@ -203,9 +204,9 @@ private func ckKemEncapsulate(_ algorithm: Int32, rawPublicKey: Data) throws -> 
 private func ckMldsaPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data {
     switch algorithm {
     case CK_MLDSA_65:
-        return try Data(MLDSA65.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try MLDSA65.PublicKey(rawRepresentation: raw).rawRepresentation
     case CK_MLDSA_87:
-        return try Data(MLDSA87.PublicKey(rawRepresentation: raw).rawRepresentation)
+        return try MLDSA87.PublicKey(rawRepresentation: raw).rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -215,9 +216,9 @@ private func ckMldsaPublicKeyData(_ algorithm: Int32, raw: Data) throws -> Data 
 private func ckMldsaPrivateKeyGenerate(_ algorithm: Int32) throws -> Data {
     switch algorithm {
     case CK_MLDSA_65:
-        return try Data(MLDSA65.PrivateKey().integrityCheckedRepresentation)
+        return try MLDSA65.PrivateKey().integrityCheckedRepresentation
     case CK_MLDSA_87:
-        return try Data(MLDSA87.PrivateKey().integrityCheckedRepresentation)
+        return try MLDSA87.PrivateKey().integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -232,10 +233,10 @@ private func ckMldsaPrivateKeyFromSeed(
     switch algorithm {
     case CK_MLDSA_65:
         let publicKey = try publicKey.map { try MLDSA65.PublicKey(rawRepresentation: $0) }
-        return try Data(MLDSA65.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation)
+        return try MLDSA65.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation
     case CK_MLDSA_87:
         let publicKey = try publicKey.map { try MLDSA87.PublicKey(rawRepresentation: $0) }
-        return try Data(MLDSA87.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation)
+        return try MLDSA87.PrivateKey(seedRepresentation: seed, publicKey: publicKey).integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -245,9 +246,9 @@ private func ckMldsaPrivateKeyFromSeed(
 private func ckMldsaPrivateKeyData(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_MLDSA_65:
-        return try Data(MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation)
+        return try MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation
     case CK_MLDSA_87:
-        return try Data(MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation)
+        return try MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).integrityCheckedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -257,9 +258,9 @@ private func ckMldsaPrivateKeyData(_ algorithm: Int32, integrityChecked: Data) t
 private func ckMldsaPrivateKeySeedRepresentation(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_MLDSA_65:
-        return try Data(MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation)
+        return try MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation
     case CK_MLDSA_87:
-        return try Data(MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation)
+        return try MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).seedRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -269,9 +270,9 @@ private func ckMldsaPrivateKeySeedRepresentation(_ algorithm: Int32, integrityCh
 private func ckMldsaPrivateKeyPublicKey(_ algorithm: Int32, integrityChecked: Data) throws -> Data {
     switch algorithm {
     case CK_MLDSA_65:
-        return try Data(MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation)
+        return try MLDSA65.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation
     case CK_MLDSA_87:
-        return try Data(MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation)
+        return try MLDSA87.PrivateKey(integrityCheckedRepresentation: integrityChecked).publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported ML-DSA algorithm: \(algorithm)")
     }
@@ -423,10 +424,10 @@ private func ckSecureEnclaveMldsaPublicKey(_ algorithm: Int32, handle: UnsafeMut
     switch algorithm {
     case CK_MLDSA_65:
         let holder = Unmanaged<CKSecureEnclaveMLDSA65PrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return Data(holder.key.publicKey.rawRepresentation)
+        return holder.key.publicKey.rawRepresentation
     case CK_MLDSA_87:
         let holder = Unmanaged<CKSecureEnclaveMLDSA87PrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return Data(holder.key.publicKey.rawRepresentation)
+        return holder.key.publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
     }
@@ -566,10 +567,10 @@ private func ckSecureEnclaveKemPublicKey(_ algorithm: Int32, handle: UnsafeMutab
     switch algorithm {
     case CK_KEM_MLKEM768:
         let holder = Unmanaged<CKSecureEnclaveMLKEM768PrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return Data(holder.key.publicKey.rawRepresentation)
+        return holder.key.publicKey.rawRepresentation
     case CK_KEM_MLKEM1024:
         let holder = Unmanaged<CKSecureEnclaveMLKEM1024PrivateKeyHolder>.fromOpaque(handle).takeUnretainedValue()
-        return Data(holder.key.publicKey.rawRepresentation)
+        return holder.key.publicKey.rawRepresentation
     default:
         throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
     }

@@ -98,11 +98,11 @@ private func ckHkdfExtract(
     let key = ckHkdfSymmetricKey(inputKeyMaterial)
     switch algorithm {
     case CK_HASH_SHA256:
-        return Data(Array(HKDF<SHA256>.extract(inputKeyMaterial: key, salt: salt)))
+        return HKDF<SHA256>.extract(inputKeyMaterial: key, salt: salt).withUnsafeBytes(ckOwnedData)
     case CK_HASH_SHA384:
-        return Data(Array(HKDF<SHA384>.extract(inputKeyMaterial: key, salt: salt)))
+        return HKDF<SHA384>.extract(inputKeyMaterial: key, salt: salt).withUnsafeBytes(ckOwnedData)
     case CK_HASH_SHA512:
-        return Data(Array(HKDF<SHA512>.extract(inputKeyMaterial: key, salt: salt)))
+        return HKDF<SHA512>.extract(inputKeyMaterial: key, salt: salt).withUnsafeBytes(ckOwnedData)
     default:
         throw CKBridgeError.invalidArgument("unsupported HKDF algorithm: \(algorithm)")
     }

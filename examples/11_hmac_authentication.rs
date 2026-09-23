@@ -13,6 +13,6 @@ fn hex(bytes: &[u8]) -> String {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let key = SymmetricKey::from_bytes(vec![0x0b; 20]);
     let code = hmac_sha256(b"Hi There", &key)?;
-    println!("hmac-sha256: {}", hex(&code));
+    println!("hmac-sha256: {}", hex(code.as_bytes()));
     Ok(())
 }
