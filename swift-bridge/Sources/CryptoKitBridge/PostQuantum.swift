@@ -608,7 +608,6 @@ private func ckSecureEnclaveKemDecapsulate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_public_key_validate")
 public func ck_kem_public_key_validate(
     _ algorithm: Int32,
@@ -632,7 +631,6 @@ public func ck_kem_public_key_validate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_public_key_encapsulate")
 public func ck_kem_public_key_encapsulate(
     _ algorithm: Int32,
@@ -667,7 +665,6 @@ public func ck_kem_public_key_encapsulate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_generate")
 public func ck_kem_private_key_generate(
     _ algorithm: Int32,
@@ -688,7 +685,6 @@ public func ck_kem_private_key_generate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_from_seed")
 public func ck_kem_private_key_from_seed(
     _ algorithm: Int32,
@@ -715,7 +711,6 @@ public func ck_kem_private_key_from_seed(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_validate")
 public func ck_kem_private_key_validate(
     _ algorithm: Int32,
@@ -739,7 +734,6 @@ public func ck_kem_private_key_validate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_seed_representation")
 public func ck_kem_private_key_seed_representation(
     _ algorithm: Int32,
@@ -763,7 +757,6 @@ public func ck_kem_private_key_seed_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_public_key")
 public func ck_kem_private_key_public_key(
     _ algorithm: Int32,
@@ -787,7 +780,6 @@ public func ck_kem_private_key_public_key(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_kem_private_key_decapsulate")
 public func ck_kem_private_key_decapsulate(
     _ algorithm: Int32,
@@ -814,7 +806,6 @@ public func ck_kem_private_key_decapsulate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_public_key_validate")
 public func ck_mldsa_public_key_validate(
     _ algorithm: Int32,
@@ -838,7 +829,6 @@ public func ck_mldsa_public_key_validate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_public_key_verify")
 public func ck_mldsa_public_key_verify(
     _ algorithm: Int32,
@@ -874,7 +864,6 @@ public func ck_mldsa_public_key_verify(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_generate")
 public func ck_mldsa_private_key_generate(
     _ algorithm: Int32,
@@ -895,7 +884,6 @@ public func ck_mldsa_private_key_generate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_from_seed")
 public func ck_mldsa_private_key_from_seed(
     _ algorithm: Int32,
@@ -922,7 +910,6 @@ public func ck_mldsa_private_key_from_seed(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_validate")
 public func ck_mldsa_private_key_validate(
     _ algorithm: Int32,
@@ -946,7 +933,6 @@ public func ck_mldsa_private_key_validate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_seed_representation")
 public func ck_mldsa_private_key_seed_representation(
     _ algorithm: Int32,
@@ -970,7 +956,6 @@ public func ck_mldsa_private_key_seed_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_public_key")
 public func ck_mldsa_private_key_public_key(
     _ algorithm: Int32,
@@ -994,7 +979,6 @@ public func ck_mldsa_private_key_public_key(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_mldsa_private_key_sign")
 public func ck_mldsa_private_key_sign(
     _ algorithm: Int32,
@@ -1024,7 +1008,6 @@ public func ck_mldsa_private_key_sign(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_generate")
 public func ck_secure_enclave_mldsa_private_key_generate(
     _ algorithm: Int32,
@@ -1040,14 +1023,7 @@ public func ck_secure_enclave_mldsa_private_key_generate(
             throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
         }
         let holder = try ckSecureEnclaveMldsaHolder(algorithm)
-        switch algorithm {
-        case CK_MLDSA_65:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
-        case CK_MLDSA_87:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1057,7 +1033,6 @@ public func ck_secure_enclave_mldsa_private_key_generate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_generate_with_options")
 public func ck_secure_enclave_mldsa_private_key_generate_with_options(
     _ algorithm: Int32,
@@ -1081,14 +1056,7 @@ public func ck_secure_enclave_mldsa_private_key_generate_with_options(
             accessControlFlags: accessControlFlags,
             authenticationContextHandle: authenticationContext
         )
-        switch algorithm {
-        case CK_MLDSA_65:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
-        case CK_MLDSA_87:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1098,7 +1066,6 @@ public func ck_secure_enclave_mldsa_private_key_generate_with_options(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_from_data_representation")
 public func ck_secure_enclave_mldsa_private_key_from_data_representation(
     _ algorithm: Int32,
@@ -1117,14 +1084,7 @@ public func ck_secure_enclave_mldsa_private_key_from_data_representation(
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         let holder = try ckSecureEnclaveMldsaHolder(algorithm, dataRepresentation: dataRepresentation)
-        switch algorithm {
-        case CK_MLDSA_65:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
-        case CK_MLDSA_87:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1134,7 +1094,6 @@ public func ck_secure_enclave_mldsa_private_key_from_data_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_from_data_representation_with_context")
 public func ck_secure_enclave_mldsa_private_key_from_data_representation_with_context(
     _ algorithm: Int32,
@@ -1158,14 +1117,7 @@ public func ck_secure_enclave_mldsa_private_key_from_data_representation_with_co
             dataRepresentation: dataRepresentation,
             authenticationContextHandle: authenticationContext
         )
-        switch algorithm {
-        case CK_MLDSA_65:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA65PrivateKeyHolder).toOpaque()
-        case CK_MLDSA_87:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLDSA87PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave ML-DSA algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1175,7 +1127,6 @@ public func ck_secure_enclave_mldsa_private_key_from_data_representation_with_co
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_release")
 public func ck_secure_enclave_mldsa_private_key_release(
     _ algorithm: Int32,
@@ -1195,7 +1146,6 @@ public func ck_secure_enclave_mldsa_private_key_release(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_public_key")
 public func ck_secure_enclave_mldsa_private_key_public_key(
     _ algorithm: Int32,
@@ -1220,7 +1170,6 @@ public func ck_secure_enclave_mldsa_private_key_public_key(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_data_representation")
 public func ck_secure_enclave_mldsa_private_key_data_representation(
     _ algorithm: Int32,
@@ -1245,7 +1194,6 @@ public func ck_secure_enclave_mldsa_private_key_data_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_mldsa_private_key_sign")
 public func ck_secure_enclave_mldsa_private_key_sign(
     _ algorithm: Int32,
@@ -1276,7 +1224,6 @@ public func ck_secure_enclave_mldsa_private_key_sign(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_generate")
 public func ck_secure_enclave_kem_private_key_generate(
     _ algorithm: Int32,
@@ -1292,14 +1239,7 @@ public func ck_secure_enclave_kem_private_key_generate(
             throw CKBridgeError.invalidArgument("Secure Enclave is unavailable on this Mac")
         }
         let holder = try ckSecureEnclaveKemHolder(algorithm)
-        switch algorithm {
-        case CK_KEM_MLKEM768:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
-        case CK_KEM_MLKEM1024:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1309,7 +1249,6 @@ public func ck_secure_enclave_kem_private_key_generate(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_generate_with_options")
 public func ck_secure_enclave_kem_private_key_generate_with_options(
     _ algorithm: Int32,
@@ -1333,14 +1272,7 @@ public func ck_secure_enclave_kem_private_key_generate_with_options(
             accessControlFlags: accessControlFlags,
             authenticationContextHandle: authenticationContext
         )
-        switch algorithm {
-        case CK_KEM_MLKEM768:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
-        case CK_KEM_MLKEM1024:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1350,7 +1282,6 @@ public func ck_secure_enclave_kem_private_key_generate_with_options(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_from_data_representation")
 public func ck_secure_enclave_kem_private_key_from_data_representation(
     _ algorithm: Int32,
@@ -1369,14 +1300,7 @@ public func ck_secure_enclave_kem_private_key_from_data_representation(
         }
         let dataRepresentation = try ckData(dataBytes, dataLen)
         let holder = try ckSecureEnclaveKemHolder(algorithm, dataRepresentation: dataRepresentation)
-        switch algorithm {
-        case CK_KEM_MLKEM768:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
-        case CK_KEM_MLKEM1024:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1386,7 +1310,6 @@ public func ck_secure_enclave_kem_private_key_from_data_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_from_data_representation_with_context")
 public func ck_secure_enclave_kem_private_key_from_data_representation_with_context(
     _ algorithm: Int32,
@@ -1410,14 +1333,7 @@ public func ck_secure_enclave_kem_private_key_from_data_representation_with_cont
             dataRepresentation: dataRepresentation,
             authenticationContextHandle: authenticationContext
         )
-        switch algorithm {
-        case CK_KEM_MLKEM768:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM768PrivateKeyHolder).toOpaque()
-        case CK_KEM_MLKEM1024:
-            return Unmanaged.passRetained(holder as! CKSecureEnclaveMLKEM1024PrivateKeyHolder).toOpaque()
-        default:
-            throw CKBridgeError.invalidArgument("unsupported Secure Enclave KEM algorithm: \(algorithm)")
-        }
+        return Unmanaged.passRetained(holder).toOpaque()
     } catch let error as CKBridgeError {
         ckWriteError(errorOut, error.localizedDescription)
         return nil
@@ -1427,7 +1343,6 @@ public func ck_secure_enclave_kem_private_key_from_data_representation_with_cont
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_release")
 public func ck_secure_enclave_kem_private_key_release(
     _ algorithm: Int32,
@@ -1447,7 +1362,6 @@ public func ck_secure_enclave_kem_private_key_release(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_public_key")
 public func ck_secure_enclave_kem_private_key_public_key(
     _ algorithm: Int32,
@@ -1472,7 +1386,6 @@ public func ck_secure_enclave_kem_private_key_public_key(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_data_representation")
 public func ck_secure_enclave_kem_private_key_data_representation(
     _ algorithm: Int32,
@@ -1497,7 +1410,6 @@ public func ck_secure_enclave_kem_private_key_data_representation(
     }
 }
 
-@available(macOS 26.0, *)
 @_cdecl("ck_secure_enclave_kem_private_key_decapsulate")
 public func ck_secure_enclave_kem_private_key_decapsulate(
     _ algorithm: Int32,
