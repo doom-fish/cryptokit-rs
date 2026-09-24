@@ -11,7 +11,7 @@ Safe Rust bindings for Apple's [CryptoKit](https://developer.apple.com/documenta
 cryptokit-rs = "0.3.0"
 ```
 
-The library is imported as `cryptokit`. Building requires macOS with Xcode 26 or newer (the macOS 26 SDK). The resulting binaries run on macOS 12 and later: the CryptoKit bridge targets macOS 10.15, but the `security-rs` dependency, which provides the Secure Enclave access-control type, requires macOS 12. APIs that need a newer OS return an error at runtime.
+The library is imported as `cryptokit`. Building requires macOS with Xcode 26 or newer (the macOS 26 SDK). The resulting binaries run on macOS 12 and later: the `CryptoKit` bridge targets macOS 10.15, but the `security-rs` dependency, which provides the Secure Enclave access-control type, requires macOS 12. APIs that need a newer OS return an error at runtime.
 
 ## Quick start
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Verify a received MAC with `computed == received` (constant-time against byte slices, vectors and arrays) or `Hmac::<H>::is_valid_authentication_code`.
 - `SharedSecret` stays inside `CryptoKit`. Derive keys with `key_derivation::derive_hkdf` / `derive_x963`; the raw key-agreement output is only available through `SharedSecret::hazmat_raw_bytes()`.
 - `hazmat::aes_cbc::AesCbc` is unauthenticated CBC with a caller-supplied IV. All decryption failures return the same error, but `CommonCrypto` does not reliably reject malformed padding, so authenticate ciphertexts separately or use `AesGcm` / `ChaChaPoly`.
-- Secure Enclave key creation takes `security-rs`'s `AccessControl`, and the bridge hands its `SecAccessControlRef` to CryptoKit. Only the `ThisDeviceOnly` protection classes are accepted and the flags must include `PRIVATE_KEY_USAGE`; anything else returns `InvalidArgument` before a key is created. `secure_enclave::default_access_control()` returns `WhenUnlockedThisDeviceOnly` with `PRIVATE_KEY_USAGE`. Passing `None`, as `generate()` does, uses CryptoKit's own default, `AfterFirstUnlockThisDeviceOnly` with no flags.
+- Secure Enclave key creation takes `security-rs`'s `AccessControl`, and the bridge hands its `SecAccessControlRef` to `CryptoKit`. Only the `ThisDeviceOnly` protection classes are accepted and the flags must include `PRIVATE_KEY_USAGE`; anything else returns `InvalidArgument` before a key is created. `secure_enclave::default_access_control()` returns `WhenUnlockedThisDeviceOnly` with `PRIVATE_KEY_USAGE`. Passing `None`, as `generate()` does, uses `CryptoKit`'s own default, `AfterFirstUnlockThisDeviceOnly` with no flags.
 
 ## Secure Enclave access control
 
