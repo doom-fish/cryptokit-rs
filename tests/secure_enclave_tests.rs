@@ -1,6 +1,8 @@
+use std::error::Error;
+
 use cryptokit::p256::P256KeyAgreementPrivateKey;
 use cryptokit::secure_enclave::{
-    self, SecureEnclaveAccessControl, SecureEnclaveAccessControlFlags, SecureEnclaveAccessibility,
+    self, AccessControl, AccessControlFlags, AccessControlProtection,
     SecureEnclaveAuthenticationContext, SecureEnclaveKeyAgreementPrivateKey,
     SecureEnclaveMldsa65PrivateKey, SecureEnclaveMlkem768PrivateKey,
     SecureEnclaveSigningPrivateKey,
@@ -14,7 +16,8 @@ fn secure_enclave_availability_probe_is_safe() -> Result<()> {
 }
 
 #[test]
-fn authentication_context_setters_and_access_control_flags_are_safe() -> Result<()> {
+fn authentication_context_setters_and_access_control_flags_are_safe(
+) -> std::result::Result<(), Box<dyn Error>> {
     let mut context = SecureEnclaveAuthenticationContext::new()?;
     context
         .set_interaction_not_allowed(true)?
@@ -24,60 +27,78 @@ fn authentication_context_setters_and_access_control_flags_are_safe() -> Result<
         .set_localized_fallback_title(None)?
         .set_localized_cancel_title(None)?;
 
-    let flags = SecureEnclaveAccessControlFlags::USER_PRESENCE
-        | SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE;
-    let access_control = SecureEnclaveAccessControl::new(
-        SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly,
-        flags,
-    );
+    let flags = AccessControlFlags::USER_PRESENCE | AccessControlFlags::PRIVATE_KEY_USAGE;
+    let access_control =
+        AccessControl::create(AccessControlProtection::WhenUnlockedThisDeviceOnly, flags)?;
     assert_eq!(
-        access_control.accessibility(),
-        SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly
+        access_control.protection(),
+        AccessControlProtection::WhenUnlockedThisDeviceOnly
     );
-    assert_eq!(access_control.flags().bits(), flags.bits());
+    assert_eq!(access_control.flags(), flags);
     Ok(())
 }
 
 #[test]
-fn default_access_control_is_usable_and_device_bound() {
-    let access_control = SecureEnclaveAccessControl::default();
+fn default_access_control_is_usable_and_device_bound() -> Result<()> {
+    let access_control = secure_enclave::default_access_control()?;
     assert_eq!(
-        access_control.accessibility(),
-        SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly
+        access_control.protection(),
+        AccessControlProtection::WhenUnlockedThisDeviceOnly
     );
-    assert!(access_control
-        .flags()
-        .contains(SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE));
-    assert!(!SecureEnclaveAccessControlFlags::USER_PRESENCE
-        .contains(SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE));
+    assert_eq!(
+        access_control.flags(),
+        AccessControlFlags::PRIVATE_KEY_USAGE
+    );
+    assert!(!access_control.as_ptr().is_null());
+    Ok(())
 }
 
-#[test]
-fn access_control_without_private_key_usage_is_rejected_before_key_creation() {
-    let access_control = SecureEnclaveAccessControl::new(
-        SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly,
-        SecureEnclaveAccessControlFlags::USER_PRESENCE,
-    );
+fn assert_rejected_before_key_creation(access_control: &AccessControl) {
     assert!(matches!(
-        SecureEnclaveSigningPrivateKey::generate_with_options(true, Some(&access_control), None),
+        SecureEnclaveSigningPrivateKey::generate_with_options(true, Some(access_control), None),
         Err(CryptoKitError::InvalidArgument(_))
     ));
     assert!(matches!(
         SecureEnclaveKeyAgreementPrivateKey::generate_with_options(
             true,
-            Some(&access_control),
+            Some(access_control),
             None
         ),
         Err(CryptoKitError::InvalidArgument(_))
     ));
     assert!(matches!(
-        SecureEnclaveMldsa65PrivateKey::generate_with_options(Some(&access_control), None),
+        SecureEnclaveMldsa65PrivateKey::generate_with_options(Some(access_control), None),
         Err(CryptoKitError::InvalidArgument(_))
     ));
     assert!(matches!(
-        SecureEnclaveMlkem768PrivateKey::generate_with_options(Some(&access_control), None),
+        SecureEnclaveMlkem768PrivateKey::generate_with_options(Some(access_control), None),
         Err(CryptoKitError::InvalidArgument(_))
     ));
+}
+
+#[test]
+fn access_control_without_private_key_usage_is_rejected_before_key_creation(
+) -> std::result::Result<(), Box<dyn Error>> {
+    let access_control = AccessControl::create(
+        AccessControlProtection::WhenUnlockedThisDeviceOnly,
+        AccessControlFlags::USER_PRESENCE,
+    )?;
+    assert_rejected_before_key_creation(&access_control);
+    Ok(())
+}
+
+#[test]
+fn access_control_that_could_migrate_is_rejected_before_key_creation(
+) -> std::result::Result<(), Box<dyn Error>> {
+    for protection in [
+        AccessControlProtection::WhenUnlocked,
+        AccessControlProtection::AfterFirstUnlock,
+    ] {
+        let access_control =
+            AccessControl::create(protection, AccessControlFlags::PRIVATE_KEY_USAGE)?;
+        assert_rejected_before_key_creation(&access_control);
+    }
+    Ok(())
 }
 
 #[test]
@@ -87,7 +108,7 @@ fn secure_enclave_option_initializers_round_trip_when_available() -> Result<()> 
         return Ok(());
     }
 
-    let access_control = SecureEnclaveAccessControl::default();
+    let access_control = secure_enclave::default_access_control()?;
     let mut context = SecureEnclaveAuthenticationContext::new()?;
     context.set_interaction_not_allowed(true)?;
 
@@ -170,10 +191,11 @@ fn secure_enclave_post_quantum_round_trips_when_available() -> Result<()> {
         return Ok(());
     }
 
-    let access_control = SecureEnclaveAccessControl::new(
-        SecureEnclaveAccessibility::WhenUnlockedThisDeviceOnly,
-        SecureEnclaveAccessControlFlags::PRIVATE_KEY_USAGE,
-    );
+    let access_control = AccessControl::create(
+        AccessControlProtection::AfterFirstUnlockThisDeviceOnly,
+        AccessControlFlags::PRIVATE_KEY_USAGE,
+    )
+    .map_err(|error| CryptoKitError::KeyOperationFailed(error.to_string()))?;
     let mut context = SecureEnclaveAuthenticationContext::new()?;
     context.set_interaction_not_allowed(true)?;
 

@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Output lengths are validated before calling Swift (HKDF and HKDF-Expand 1..=255 × HashLen, X9.63 below HashLen × (2³² − 1), HPKE `export_secret` 1..=255 × Nh), and the Swift thunks use `Int(exactly:)` plus the same bounds, so oversized requests return `InvalidArgument` instead of aborting the process.
-- `SecureEnclaveAccessControl::default()` now includes `PRIVATE_KEY_USAGE` and matches CryptoKit's default (`WhenUnlockedThisDeviceOnly`), so keys created with it are usable. Access control without `PRIVATE_KEY_USAGE` returns `InvalidArgument`.
 - The post-quantum and HPKE thunks no longer carry `@available` attributes that folded their runtime `#available` guards to `true`; on older macOS they return the "requires macOS N" error again instead of calling unavailable symbols.
 - Removed `as!` force casts from the Secure Enclave post-quantum constructors.
 
@@ -32,18 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `hmac_sha256`, `hmac_sha384` and `hmac_sha512` return `HashedAuthenticationCode<H>`; use `.as_bytes()` for the raw MAC. `HashedAuthenticationCode` and `MessageAuthenticationCode` no longer implement or require `Hash`.
 - **Breaking:** AES-CBC moved from `cryptokit::aes_cbc` and the root/prelude `AesCbc` re-export to `cryptokit::hazmat::aes_cbc::AesCbc`.
 - **Breaking:** the root and prelude `AesGcm` is now `aes_gcm::AesGcm` (sealed boxes and authenticated data), and `ChaChaPoly` replaces `ChaCha20Poly1305`.
-- **Breaking:** `SecureEnclaveAccessibility` only offers the `ThisDeviceOnly` variants.
-- **Breaking:** the raw `cryptokit::ffi` declarations for shared secrets, the combined AES-GCM / ChaChaPoly thunks and the removed Secure Enclave accessibility constants changed with the bridge.
+- **Breaking:** Secure Enclave key creation (`generate_with_options` on `SecureEnclaveSigningPrivateKey`, `SecureEnclaveKeyAgreementPrivateKey`, `SecureEnclaveMldsa65PrivateKey`, `SecureEnclaveMldsa87PrivateKey`, `SecureEnclaveMlkem768PrivateKey` and `SecureEnclaveMlkem1024PrivateKey`) takes `Option<&AccessControl>`, `security-rs`'s wrapper around a real `SecAccessControlRef`, which the Swift bridge passes to CryptoKit instead of rebuilding an access control from flags. `None` still selects CryptoKit's own default (`AfterFirstUnlockThisDeviceOnly`, no flags).
+- **Breaking:** Secure Enclave access control must use a `ThisDeviceOnly` protection class and include `PRIVATE_KEY_USAGE`; anything else returns `InvalidArgument` before a key is created.
+- **Breaking:** the convenience default is `secure_enclave::default_access_control()`, `WhenUnlockedThisDeviceOnly` with `PRIVATE_KEY_USAGE`. 0.2's `SecureEnclaveAccessControl::default()` was `AfterFirstUnlockThisDeviceOnly` with no flags.
+- **Breaking:** the crate depends on `security-rs` (`>=0.6, <0.7`), whose Swift bridge requires macOS 12, so binaries now need macOS 12 or later.
+- **Breaking:** the raw `cryptokit::ffi` declarations for shared secrets, the combined AES-GCM / ChaChaPoly thunks and the Secure Enclave `*_generate_with_options` thunks (which take the `SecAccessControlRef` instead of an accessibility constant and flags) changed with the bridge, and `ffi::secure_enclave_accessibility` is removed.
 - `rust-version` is now 1.82.
 
 ### Added
 
-- `SharedSecret::hazmat_raw_bytes` and `SecureEnclaveAccessControlFlags::contains`.
+- `SharedSecret::hazmat_raw_bytes`.
+- `secure_enclave::default_access_control()`, and re-exports of `security-rs`'s `AccessControl`, `AccessControlFlags` and `AccessControlProtection` from `secure_enclave`.
 - Root and prelude re-exports of `HashedAuthenticationCode`, `AesGcmNonce`, `AesGcmSealedBox`, `ChaChaPoly`, `ChaChaPolyNonce` and `ChaChaPolySealedBox`, and a root re-export of `zeroize::Zeroizing`.
 
 ### Removed
 
-- `symmetric::AesGcm`, `symmetric::ChaCha20Poly1305`, the `Vec`-returning dynamic `hmac()`, `hmac_sha256_code` / `hmac_sha384_code` / `hmac_sha512_code`, and the `AfterFirstUnlock`, `WhenUnlocked`, `AlwaysThisDeviceOnly` and `Always` Secure Enclave accessibility variants.
+- `symmetric::AesGcm`, `symmetric::ChaCha20Poly1305`, the `Vec`-returning dynamic `hmac()` and `hmac_sha256_code` / `hmac_sha384_code` / `hmac_sha512_code`.
+- **Breaking:** `secure_enclave::{SecureEnclaveAccessControl, SecureEnclaveAccessControlFlags, SecureEnclaveAccessibility}`, duplicates of the `security-rs` types. Use `AccessControl::create(AccessControlProtection, AccessControlFlags)` (re-exported from `secure_enclave`) or `secure_enclave::default_access_control()`.
 
 ## [0.2.5] - 2026-05-19
 

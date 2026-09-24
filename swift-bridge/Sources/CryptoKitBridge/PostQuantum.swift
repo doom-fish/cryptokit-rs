@@ -344,12 +344,11 @@ private func ckSecureEnclaveMldsaHolder(_ algorithm: Int32) throws -> AnyObject 
 @available(macOS 26.0, *)
 private func ckSecureEnclaveMldsaHolder(
     _ algorithm: Int32,
-    accessibility: Int32,
-    accessControlFlags: UInt64,
+    accessControlHandle: UnsafeMutableRawPointer?,
     authenticationContextHandle: UnsafeMutableRawPointer?
 ) throws -> AnyObject {
     let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
-    let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags)
+    let accessControl = try ckSecureEnclaveAccessControl(accessControlHandle)
     switch algorithm {
     case CK_MLDSA_65:
         if let accessControl {
@@ -487,12 +486,11 @@ private func ckSecureEnclaveKemHolder(_ algorithm: Int32) throws -> AnyObject {
 @available(macOS 26.0, *)
 private func ckSecureEnclaveKemHolder(
     _ algorithm: Int32,
-    accessibility: Int32,
-    accessControlFlags: UInt64,
+    accessControlHandle: UnsafeMutableRawPointer?,
     authenticationContextHandle: UnsafeMutableRawPointer?
 ) throws -> AnyObject {
     let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
-    let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags)
+    let accessControl = try ckSecureEnclaveAccessControl(accessControlHandle)
     switch algorithm {
     case CK_KEM_MLKEM768:
         if let accessControl {
@@ -1036,8 +1034,7 @@ public func ck_secure_enclave_mldsa_private_key_generate(
 @_cdecl("ck_secure_enclave_mldsa_private_key_generate_with_options")
 public func ck_secure_enclave_mldsa_private_key_generate_with_options(
     _ algorithm: Int32,
-    _ accessibility: Int32,
-    _ accessControlFlags: UInt64,
+    _ accessControl: UnsafeMutableRawPointer?,
     _ authenticationContext: UnsafeMutableRawPointer?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
@@ -1052,8 +1049,7 @@ public func ck_secure_enclave_mldsa_private_key_generate_with_options(
         }
         let holder = try ckSecureEnclaveMldsaHolder(
             algorithm,
-            accessibility: accessibility,
-            accessControlFlags: accessControlFlags,
+            accessControlHandle: accessControl,
             authenticationContextHandle: authenticationContext
         )
         return Unmanaged.passRetained(holder).toOpaque()
@@ -1252,8 +1248,7 @@ public func ck_secure_enclave_kem_private_key_generate(
 @_cdecl("ck_secure_enclave_kem_private_key_generate_with_options")
 public func ck_secure_enclave_kem_private_key_generate_with_options(
     _ algorithm: Int32,
-    _ accessibility: Int32,
-    _ accessControlFlags: UInt64,
+    _ accessControl: UnsafeMutableRawPointer?,
     _ authenticationContext: UnsafeMutableRawPointer?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
@@ -1268,8 +1263,7 @@ public func ck_secure_enclave_kem_private_key_generate_with_options(
         }
         let holder = try ckSecureEnclaveKemHolder(
             algorithm,
-            accessibility: accessibility,
-            accessControlFlags: accessControlFlags,
+            accessControlHandle: accessControl,
             authenticationContextHandle: authenticationContext
         )
         return Unmanaged.passRetained(holder).toOpaque()

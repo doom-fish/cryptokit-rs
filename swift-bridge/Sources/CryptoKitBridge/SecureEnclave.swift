@@ -31,12 +31,11 @@ private func ckSecureEnclaveKeyAgreementPrivateKeyHolder(from dataRepresentation
 
 private func ckSecureEnclaveSigningPrivateKeyHolder(
     compactRepresentable: Bool,
-    accessibility: Int32,
-    accessControlFlags: UInt64,
+    accessControlHandle: UnsafeMutableRawPointer?,
     authenticationContextHandle: UnsafeMutableRawPointer?
 ) throws -> CKSecureEnclaveSigningPrivateKeyHolder {
     let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
-    if let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags) {
+    if let accessControl = try ckSecureEnclaveAccessControl(accessControlHandle) {
         return try CKSecureEnclaveSigningPrivateKeyHolder(
             SecureEnclave.P256.Signing.PrivateKey(
                 compactRepresentable: compactRepresentable,
@@ -67,12 +66,11 @@ private func ckSecureEnclaveSigningPrivateKeyHolder(
 
 private func ckSecureEnclaveKeyAgreementPrivateKeyHolder(
     compactRepresentable: Bool,
-    accessibility: Int32,
-    accessControlFlags: UInt64,
+    accessControlHandle: UnsafeMutableRawPointer?,
     authenticationContextHandle: UnsafeMutableRawPointer?
 ) throws -> CKSecureEnclaveKeyAgreementPrivateKeyHolder {
     let authenticationContext = try ckAuthenticationContext(authenticationContextHandle)
-    if let accessControl = try ckSecureEnclaveAccessControl(accessibility, accessControlFlags) {
+    if let accessControl = try ckSecureEnclaveAccessControl(accessControlHandle) {
         return try CKSecureEnclaveKeyAgreementPrivateKeyHolder(
             SecureEnclave.P256.KeyAgreement.PrivateKey(
                 compactRepresentable: compactRepresentable,
@@ -135,8 +133,7 @@ public func ck_secure_enclave_signing_private_key_generate(
 @_cdecl("ck_secure_enclave_signing_private_key_generate_with_options")
 public func ck_secure_enclave_signing_private_key_generate_with_options(
     _ compactRepresentable: UInt8,
-    _ accessibility: Int32,
-    _ accessControlFlags: UInt64,
+    _ accessControl: UnsafeMutableRawPointer?,
     _ authenticationContext: UnsafeMutableRawPointer?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
@@ -146,8 +143,7 @@ public func ck_secure_enclave_signing_private_key_generate_with_options(
         }
         let holder = try ckSecureEnclaveSigningPrivateKeyHolder(
             compactRepresentable: compactRepresentable != 0,
-            accessibility: accessibility,
-            accessControlFlags: accessControlFlags,
+            accessControlHandle: accessControl,
             authenticationContextHandle: authenticationContext
         )
         return Unmanaged.passRetained(holder).toOpaque()
@@ -302,8 +298,7 @@ public func ck_secure_enclave_key_agreement_private_key_generate(
 @_cdecl("ck_secure_enclave_key_agreement_private_key_generate_with_options")
 public func ck_secure_enclave_key_agreement_private_key_generate_with_options(
     _ compactRepresentable: UInt8,
-    _ accessibility: Int32,
-    _ accessControlFlags: UInt64,
+    _ accessControl: UnsafeMutableRawPointer?,
     _ authenticationContext: UnsafeMutableRawPointer?,
     _ errorOut: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
 ) -> UnsafeMutableRawPointer? {
@@ -313,8 +308,7 @@ public func ck_secure_enclave_key_agreement_private_key_generate_with_options(
         }
         let holder = try ckSecureEnclaveKeyAgreementPrivateKeyHolder(
             compactRepresentable: compactRepresentable != 0,
-            accessibility: accessibility,
-            accessControlFlags: accessControlFlags,
+            accessControlHandle: accessControl,
             authenticationContextHandle: authenticationContext
         )
         return Unmanaged.passRetained(holder).toOpaque()

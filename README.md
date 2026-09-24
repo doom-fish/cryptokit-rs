@@ -11,7 +11,7 @@ Safe Rust bindings for Apple's [CryptoKit](https://developer.apple.com/documenta
 cryptokit-rs = "0.3.0"
 ```
 
-The library is imported as `cryptokit`. Building requires macOS with Xcode 26 or newer (the macOS 26 SDK); the resulting binaries run on macOS 10.15 and later, and APIs that need a newer OS return an error at runtime.
+The library is imported as `cryptokit`. Building requires macOS with Xcode 26 or newer (the macOS 26 SDK). The resulting binaries run on macOS 12 and later: the CryptoKit bridge targets macOS 10.15, but the `security-rs` dependency, which provides the Secure Enclave access-control type, requires macOS 12. APIs that need a newer OS return an error at runtime.
 
 ## Quick start
 
@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Adds `key_wrap::AesKeyWrap`, `sha3::{Sha3_256, Sha3_384, Sha3_512}`, `kem`, `mldsa`, and `hpke::{HpkeSender, HpkeRecipient}` wrappers.
 - Adds typed SHA-2 / insecure digest values, streaming hash/HMAC state, typed HMAC codes, and HKDF `extract` / `expand` helpers.
 - Adds typed `AES.GCM.Nonce` / `ChaChaPoly.Nonce` values plus alternate P-256 / P-384 / P-521 key encodings (`compact`, `x963`, `compressed`, `pem`, `der`).
-- Adds `secure_enclave` P-256 and post-quantum access-control / authentication-context customization alongside restore/export flows.
+- Adds `secure_enclave` P-256 and post-quantum access-control / authentication-context customization alongside restore/export flows. Access control is `security-rs`'s `AccessControl`, re-exported as `secure_enclave::{AccessControl, AccessControlFlags, AccessControlProtection}`.
 - Keeps the Swift bridge build baseline at macOS 10.15 while using runtime `#available` checks for newer APIs such as `AES.KeyWrap`, SHA-3, HPKE, ML-KEM, ML-DSA, `XWing`, DER/PEM key encodings, compressed public keys, and newer HKDF entry points.
 - Adds `COVERAGE.md`, 27 numbered examples, and 22 integration-test files.
 
@@ -63,7 +63,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 - Verify a received MAC with `computed == received` (constant-time against byte slices, vectors and arrays) or `Hmac::<H>::is_valid_authentication_code`.
 - `SharedSecret` stays inside `CryptoKit`. Derive keys with `key_derivation::derive_hkdf` / `derive_x963`; the raw key-agreement output is only available through `SharedSecret::hazmat_raw_bytes()`.
 - `hazmat::aes_cbc::AesCbc` is unauthenticated CBC with a caller-supplied IV. All decryption failures return the same error, but `CommonCrypto` does not reliably reject malformed padding, so authenticate ciphertexts separately or use `AesGcm` / `ChaChaPoly`.
-- Secure Enclave access control accepts only the `ThisDeviceOnly` accessibility classes and must include `PRIVATE_KEY_USAGE`; `SecureEnclaveAccessControl::default()` matches the `CryptoKit` default.
+- Secure Enclave key creation takes `security-rs`'s `AccessControl`, and the bridge hands its `SecAccessControlRef` to CryptoKit. Only the `ThisDeviceOnly` protection classes are accepted and the flags must include `PRIVATE_KEY_USAGE`; anything else returns `InvalidArgument` before a key is created. `secure_enclave::default_access_control()` returns `WhenUnlockedThisDeviceOnly` with `PRIVATE_KEY_USAGE`. Passing `None`, as `generate()` does, uses CryptoKit's own default, `AfterFirstUnlockThisDeviceOnly` with no flags.
+
+## Secure Enclave access control
+
+```rust,no_run
+use cryptokit::secure_enclave::{
+    AccessControl, AccessControlFlags, AccessControlProtection, SecureEnclaveSigningPrivateKey,
+};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let presence = AccessControl::create(
+        AccessControlProtection::WhenUnlockedThisDeviceOnly,
+        AccessControlFlags::PRIVATE_KEY_USAGE | AccessControlFlags::USER_PRESENCE,
+    )?;
+    let key = SecureEnclaveSigningPrivateKey::generate_with_options(true, Some(&presence), None)?;
+    let persisted = key.data_representation()?;
+    println!("store {} bytes; signing asks for user presence", persisted.len());
+    Ok(())
+}
+```
+
+`security-rs` keychain items (`KeychainOptions::access_control`) and `apple-localauthentication`'s `LAContext::evaluate_access_control` take the same `AccessControl` type.
 
 ## Running everything
 

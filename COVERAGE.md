@@ -28,7 +28,7 @@ Legend:
 | HPKE | `HPKE.swift` | `src/hpke.rs` | ✅ | Diffie-Hellman and KEM sender/recipient contexts, authenticated and PSK modes, `exportSecret`, and public-key serialization. |
 | KEM | `PostQuantum.swift` | `src/kem.rs` | ✅ | Encapsulation/decapsulation for `MLKEM768`, `MLKEM1024`, and `XWingMLKEM768X25519` on macOS 26+. |
 | MLDSA | `PostQuantum.swift` | `src/mldsa.rs` | ✅ | ML-DSA 65 / 87 signing and verification with optional context bytes on macOS 26+. |
-| SecureEnclave | `SecureEnclave.swift`, `PostQuantum.swift` | `src/secure_enclave.rs` | ✅ | Availability probe, P-256 signing/key-agreement, access control (ThisDeviceOnly classes, `PRIVATE_KEY_USAGE` required) and authentication-context customization, restore/export flows, and Secure Enclave ML-KEM / ML-DSA wrappers. |
+| SecureEnclave | `SecureEnclave.swift`, `PostQuantum.swift` | `src/secure_enclave.rs` | ✅ | Availability probe, P-256 signing/key-agreement, access control (`security-rs`'s `AccessControl`, whose `SecAccessControlRef` is passed to CryptoKit; ThisDeviceOnly classes and `PRIVATE_KEY_USAGE` required) and authentication-context customization, restore/export flows, and Secure Enclave ML-KEM / ML-DSA wrappers. |
 | NIST | `NIST.swift` | `src/nist.rs` | ✅ | P-256 / P-384 / P-521 discovery and generic helper APIs. |
 | Insecure (MD5/SHA1) | `Hashing.swift`, `Insecure.swift` | `src/insecure.rs` | ✅ | One-shot and streaming `Insecure.MD5` / `Insecure.SHA1` with typed digest values. |
 | KeyAgreement | `KeyAgreement.swift`, `PublicKey.swift` | `src/key_agreement.rs` | ✅ | Generic P-256 / P-384 / P-521 / X25519 key-agreement wrappers, trait-based Diffie-Hellman helpers, and support discovery. |
@@ -36,7 +36,7 @@ Legend:
 
 ## Coverage notes
 
-- The crate still builds its Swift bridge with a macOS 10.15 deployment target; newer APIs are exposed with runtime `#available` checks rather than a higher build baseline.
+- The crate still builds its Swift bridge with a macOS 10.15 deployment target; newer APIs are exposed with runtime `#available` checks rather than a higher build baseline. The `security-rs` dependency (the Secure Enclave `AccessControl` type) requires macOS 12, so binaries need macOS 12 or later.
 - `AES.KeyWrap` requires macOS 12+, HPKE requires macOS 14+, DER/PEM encodings and native HKDF `extract` / `expand` require macOS 11+, compressed public keys require macOS 13+, and SHA-3 / ML-KEM / ML-DSA / XWing / Secure Enclave post-quantum APIs require macOS 26+.
 - Secure Enclave examples and tests probe availability first and may skip on machines without the required hardware or usable keychain state.
 - `COVERAGE_AUDIT.md` records 56 collapsed symbol families from the macOS 26.2 SDK; its "100%" is measured over those families. The raw `cryptokit::ffi` declarations are not counted as safe coverage.
@@ -56,4 +56,4 @@ Legend:
 | --- | --- | --- |
 | `AES.CBC` in CryptoKit proper | ⏭️ skipped | No public `CryptoKit` CBC API is exposed on macOS; crate provides a compatibility bridge instead. |
 | `NIST` top-level namespace | ⏭️ skipped | No standalone `NIST` namespace is exposed in CryptoKit; the crate models NIST coverage through the P-256 / P-384 / P-521 modules and `nist` helpers. |
-| `SecureEnclave` authentication context / access control customization | ✅ | Wrapped by `secure_enclave` access-control/authentication-context builders plus option-aware Secure Enclave create/restore flows. |
+| `SecureEnclave` authentication context / access control customization | ✅ | Access control is `security-rs`'s `AccessControl` (re-exported from `secure_enclave`), authentication contexts are `SecureEnclaveAuthenticationContext`, and both feed the option-aware Secure Enclave create/restore flows. |

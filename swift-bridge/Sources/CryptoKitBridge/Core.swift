@@ -47,11 +47,6 @@ let CK_KEY_FORMAT_COMPRESSED: Int32 = 4
 let CK_KEY_FORMAT_DER: Int32 = 5
 let CK_KEY_FORMAT_PEM: Int32 = 6
 
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_DEFAULT: Int32 = 0
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: Int32 = 1
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_UNLOCKED_THIS_DEVICE_ONLY: Int32 = 2
-let CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_PASSCODE_SET_THIS_DEVICE_ONLY: Int32 = 3
-
 let CK_KEM_MLKEM768: Int32 = 1
 let CK_KEM_MLKEM1024: Int32 = 2
 let CK_KEM_XWING_MLKEM768_X25519: Int32 = 3
@@ -256,43 +251,15 @@ func ckAuthenticationContext(_ handle: UnsafeMutableRawPointer?) throws -> LACon
     return Unmanaged<CKAuthenticationContextHolder>.fromOpaque(handle).takeUnretainedValue().context
 }
 
-func ckSecureEnclaveAccessControl(_ accessibility: Int32, _ flags: UInt64) throws -> SecAccessControl? {
-    guard accessibility != CK_SECURE_ENCLAVE_ACCESSIBILITY_DEFAULT else {
+func ckSecureEnclaveAccessControl(_ handle: UnsafeMutableRawPointer?) throws -> SecAccessControl? {
+    guard let handle else {
         return nil
     }
-
-    let protection: CFString
-    switch accessibility {
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY:
-        protection = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_UNLOCKED_THIS_DEVICE_ONLY:
-        protection = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-    case CK_SECURE_ENCLAVE_ACCESSIBILITY_WHEN_PASSCODE_SET_THIS_DEVICE_ONLY:
-        protection = kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly
-    default:
-        throw CKBridgeError.invalidArgument(
-            "unsupported Secure Enclave accessibility \(accessibility); only ThisDeviceOnly classes are allowed"
-        )
+    let object = Unmanaged<AnyObject>.fromOpaque(handle).takeUnretainedValue()
+    guard CFGetTypeID(object) == SecAccessControlGetTypeID() else {
+        throw CKBridgeError.invalidArgument("Secure Enclave access control must be a SecAccessControl")
     }
-
-    let accessControlFlags = SecAccessControlCreateFlags(rawValue: UInt(flags))
-    guard accessControlFlags.contains(.privateKeyUsage) else {
-        throw CKBridgeError.invalidArgument("Secure Enclave access control must include privateKeyUsage")
-    }
-
-    var error: Unmanaged<CFError>?
-    guard let accessControl = SecAccessControlCreateWithFlags(
-        nil,
-        protection,
-        accessControlFlags,
-        &error
-    ) else {
-        throw CKBridgeError.invalidArgument(
-            error?.takeRetainedValue().localizedDescription
-                ?? "failed to create Secure Enclave access-control object"
-        )
-    }
-    return accessControl
+    return unsafeDowncast(object, to: SecAccessControl.self)
 }
 
 @_cdecl("ck_authentication_context_create")

@@ -110,13 +110,6 @@ pub mod hpke_mode {
     pub const AUTH_PSK: i32 = 4;
 }
 
-pub mod secure_enclave_accessibility {
-    pub const DEFAULT: i32 = 0;
-    pub const AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: i32 = 1;
-    pub const WHEN_UNLOCKED_THIS_DEVICE_ONLY: i32 = 2;
-    pub const WHEN_PASSCODE_SET_THIS_DEVICE_ONLY: i32 = 3;
-}
-
 extern "C" {
     pub fn ck_symmetric_key_generate(
         size_bits: i32,
@@ -960,8 +953,7 @@ extern "C" {
     ) -> *mut c_void;
     pub fn ck_secure_enclave_signing_private_key_generate_with_options(
         compact_representable: u8,
-        accessibility: i32,
-        access_control_flags: u64,
+        access_control: *mut c_void,
         authentication_context: *mut c_void,
         error_out: *mut *mut c_char,
     ) -> *mut c_void;
@@ -1002,8 +994,7 @@ extern "C" {
     ) -> *mut c_void;
     pub fn ck_secure_enclave_key_agreement_private_key_generate_with_options(
         compact_representable: u8,
-        accessibility: i32,
-        access_control_flags: u64,
+        access_control: *mut c_void,
         authentication_context: *mut c_void,
         error_out: *mut *mut c_char,
     ) -> *mut c_void;
@@ -1045,8 +1036,7 @@ extern "C" {
     ) -> *mut c_void;
     pub fn ck_secure_enclave_mldsa_private_key_generate_with_options(
         algorithm: i32,
-        accessibility: i32,
-        access_control_flags: u64,
+        access_control: *mut c_void,
         authentication_context: *mut c_void,
         error_out: *mut *mut c_char,
     ) -> *mut c_void;
@@ -1096,8 +1086,7 @@ extern "C" {
     ) -> *mut c_void;
     pub fn ck_secure_enclave_kem_private_key_generate_with_options(
         algorithm: i32,
-        accessibility: i32,
-        access_control_flags: u64,
+        access_control: *mut c_void,
         authentication_context: *mut c_void,
         error_out: *mut *mut c_char,
     ) -> *mut c_void;

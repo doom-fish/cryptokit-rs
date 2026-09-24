@@ -41,6 +41,7 @@ default = []
 
 [dependencies]
 libc = "0.2"
+security-rs = { path = "../security-rs", version = ">=0.6, <0.7" }
 zeroize = ">=1.6, <1.9"
 
 [package.metadata.docs.rs]
