@@ -1,6 +1,6 @@
 [package]
 name = "cryptokit-rs"
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/doom-fish/cryptokit-rs"
@@ -41,7 +41,7 @@ default = []
 
 [dependencies]
 libc = "0.2"
-security-rs = { path = "../security-rs", version = ">=0.6, <0.7" }
+security-rs = { path = "../security-rs", version = ">=0.8, <0.9" }
 zeroize = ">=1.6, <1.9"
 
 [package.metadata.docs.rs]
