@@ -295,12 +295,13 @@ impl Sender {
     where
         P: HpkeDiffieHellmanPublicKeyImpl,
     {
+        let key_bytes = recipient_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
                 recipient_key.hpke_dh_algorithm_ffi(),
-                recipient_key.hpke_raw_public_key().as_ptr(),
-                recipient_key.hpke_raw_public_key().len(),
+                key_bytes.as_ptr(),
+                key_bytes.len(),
                 ciphersuite.kem.as_ffi(),
                 ciphersuite.kdf.as_ffi(),
                 ciphersuite.aead.as_ffi(),
@@ -339,12 +340,13 @@ impl Sender {
     where
         P: HpkeDiffieHellmanPublicKeyImpl,
     {
+        let key_bytes = recipient_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
                 recipient_key.hpke_dh_algorithm_ffi(),
-                recipient_key.hpke_raw_public_key().as_ptr(),
-                recipient_key.hpke_raw_public_key().len(),
+                key_bytes.as_ptr(),
+                key_bytes.len(),
                 ciphersuite.kem.as_ffi(),
                 ciphersuite.kdf.as_ffi(),
                 ciphersuite.aead.as_ffi(),
@@ -384,12 +386,13 @@ impl Sender {
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
         let auth_key_bytes = authentication_key.hpke_private_key_bytes();
+        let key_bytes = recipient_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
                 recipient_key.hpke_dh_algorithm_ffi(),
-                recipient_key.hpke_raw_public_key().as_ptr(),
-                recipient_key.hpke_raw_public_key().len(),
+                key_bytes.as_ptr(),
+                key_bytes.len(),
                 ciphersuite.kem.as_ffi(),
                 ciphersuite.kdf.as_ffi(),
                 ciphersuite.aead.as_ffi(),
@@ -431,12 +434,13 @@ impl Sender {
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
         let auth_key_bytes = authentication_key.hpke_private_key_bytes();
+        let key_bytes = recipient_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_dh(
                 recipient_key.hpke_dh_algorithm_ffi(),
-                recipient_key.hpke_raw_public_key().as_ptr(),
-                recipient_key.hpke_raw_public_key().len(),
+                key_bytes.as_ptr(),
+                key_bytes.len(),
                 ciphersuite.kem.as_ffi(),
                 ciphersuite.kdf.as_ffi(),
                 ciphersuite.aead.as_ffi(),
@@ -473,12 +477,13 @@ impl Sender {
     where
         P: HpkeKemPublicKeyImpl,
     {
+        let key_bytes = recipient_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_sender_create_kem(
                 recipient_key.hpke_kem_algorithm_ffi(),
-                recipient_key.hpke_raw_public_key().as_ptr(),
-                recipient_key.hpke_raw_public_key().len(),
+                key_bytes.as_ptr(),
+                key_bytes.len(),
                 ciphersuite.kem.as_ffi(),
                 ciphersuite.kdf.as_ffi(),
                 ciphersuite.aead.as_ffi(),
@@ -684,6 +689,7 @@ impl Recipient {
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
         let private_key_bytes = private_key.hpke_private_key_bytes();
+        let auth_key_bytes = authentication_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -698,8 +704,8 @@ impl Recipient {
                 encapsulated_key.as_ptr(),
                 encapsulated_key.len(),
                 ffi::hpke_mode::AUTH,
-                authentication_key.hpke_raw_public_key().as_ptr(),
-                authentication_key.hpke_raw_public_key().len(),
+                auth_key_bytes.as_ptr(),
+                auth_key_bytes.len(),
                 ptr::null(),
                 0,
                 ptr::null(),
@@ -734,6 +740,7 @@ impl Recipient {
         K::PublicKey: HpkeDiffieHellmanPublicKeyImpl,
     {
         let private_key_bytes = private_key.hpke_private_key_bytes();
+        let auth_key_bytes = authentication_key.hpke_raw_public_key();
         let mut error: *mut c_char = ptr::null_mut();
         let handle = unsafe {
             ffi::ck_hpke_recipient_create_dh(
@@ -748,8 +755,8 @@ impl Recipient {
                 encapsulated_key.as_ptr(),
                 encapsulated_key.len(),
                 ffi::hpke_mode::AUTH_PSK,
-                authentication_key.hpke_raw_public_key().as_ptr(),
-                authentication_key.hpke_raw_public_key().len(),
+                auth_key_bytes.as_ptr(),
+                auth_key_bytes.len(),
                 preshared_key.as_bytes().as_ptr(),
                 preshared_key.as_bytes().len(),
                 preshared_key_identifier.as_ptr(),
